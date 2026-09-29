@@ -22,6 +22,16 @@ public sealed class ReleaseAcceptanceTests
 
             await RunCli(cli, root, workspace, ["new", "MyApp", "--profile", "identity"]);
             var app = Path.Combine(workspace, "MyApp");
+            Assert.True(File.Exists(Path.Combine(app, "Components", "Pages", "Public", "Home.razor")));
+            Assert.True(File.Exists(Path.Combine(app, "Components", "Pages", "Auth", "Login.razor")));
+            Assert.True(File.Exists(Path.Combine(app, "Components", "Pages", "Auth", "Register.razor")));
+            Assert.True(File.Exists(Path.Combine(app, "Components", "Pages", "App", "Dashboard.razor")));
+            Assert.True(File.Exists(Path.Combine(app, "Components", "Pages", "Public", "Components.razor")));
+            Assert.True(File.Exists(Path.Combine(app, "Components", "Controls", "Button", "AnvilButton.razor")));
+            Assert.True(File.Exists(Path.Combine(app, "Components", "Controls", "Chart", "AnvilChart.razor")));
+            Assert.True(File.Exists(Path.Combine(app, "wwwroot", "anvil-controls.js")));
+            Assert.False(File.Exists(Path.Combine(app, "package.json")));
+            Assert.True(Directory.Exists(Path.Combine(app, "Migrations")));
             await RunCli(cli, root, app, ["make", "resource", "Customer"]);
             await RunCli(cli, root, app, ["make", "crud", "Customer"]);
             await RunCli(cli, root, app, ["make:page", "Reports"]);
@@ -36,6 +46,8 @@ public sealed class ReleaseAcceptanceTests
             var program = await File.ReadAllTextAsync(Path.Combine(app, "Program.cs"));
             Assert.Contains("AddAnvilProduction", program);
             Assert.Contains("MapAnvilHealthChecks", program);
+            Assert.Contains("Raukeld.Anvil", await File.ReadAllTextAsync(Path.Combine(app, "MyApp.csproj")));
+            Assert.Contains("Raukeld.Anvil.Razor", await File.ReadAllTextAsync(Path.Combine(app, "MyApp.csproj")));
         }
         finally
         {
@@ -55,8 +67,8 @@ public sealed class ReleaseAcceptanceTests
             await RunProcess("dotnet", ["pack", Path.Combine(root, "src", "Anvil", "Anvil.csproj"), "--no-restore", "-c", "Release", "-o", output], root);
             await RunProcess("dotnet", ["pack", Path.Combine(root, "src", "Anvil.Razor", "Anvil.Razor.csproj"), "--no-restore", "-c", "Release", "-o", output], root);
 
-            using var core = ZipFile.OpenRead(Path.Combine(output, "Anvil.0.1.0.nupkg"));
-            using var razor = ZipFile.OpenRead(Path.Combine(output, "Anvil.Razor.0.1.0.nupkg"));
+            using var core = ZipFile.OpenRead(Path.Combine(output, "Raukeld.Anvil.0.1.2.nupkg"));
+            using var razor = ZipFile.OpenRead(Path.Combine(output, "Raukeld.Anvil.Razor.0.1.2.nupkg"));
             Assert.Contains(core.Entries, entry => entry.FullName == "PACKAGE-NOTICE.md");
             Assert.Contains(razor.Entries, entry => entry.FullName == "PACKAGE-NOTICE.md");
             Assert.Contains(razor.Entries, entry => entry.FullName.EndsWith("htmx-4.0.0.min.js", StringComparison.Ordinal));

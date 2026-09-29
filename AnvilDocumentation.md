@@ -66,7 +66,7 @@ Important sample routes:
 ## Create an Application
 
 ```powershell
-dotnet tool install --global Anvil.Cli
+dotnet tool install --global Raukeld.Anvil.Cli
 anvil new Portal
 cd Portal
 anvil dev
@@ -150,15 +150,25 @@ target ID, `data-anvil-shard` URL, loading marker, child content, and
 `make resource Customer` creates a tenant-owned model and resource boundary.
 `make crud Customer` adds model, endpoint, list, edit, and details Razor files.
 
-`anvil new` restores packages, restores the pinned EF tool, creates the initial
-EF migration, generates route/endpoint manifests, and builds the project before
-reporting success. Use `--no-restore` only for offline file generation.
+`anvil new` restores packages, restores the pinned EF tool, creates and applies
+the initial EF migration, generates route/endpoint manifests, and builds the
+project before reporting success. Identity projects include organized
+`Components/Pages/Public`, `Components/Pages/Auth`, and `Components/Pages/App`
+routes with explicit authorization metadata. Use `--no-restore` only for
+offline file generation.
+
+The scaffold also copies a complete editable shadcn-style Razor control catalog
+to `Components/Controls`. Visit `/components` to see every generated control in
+use. Each control is ordinary application-owned Razor source with theme tokens
+in `wwwroot/app.css`; users can customize or remove controls independently.
+Advanced interactions use semantic HTML fallbacks and the optional,
+dependency-free `wwwroot/anvil-controls.js` helper. No Node toolchain is needed.
 
 `anvil generate` creates deterministic route and endpoint manifests under
 `obj/anvil`. `anvil generate --check` fails when generated metadata is stale.
 
-When running from an installed CLI, the generated project uses `Anvil` and
-`Anvil.Razor` package references. Use `Publish-AnvilPackages.ps1` to create a
+When running from an installed CLI, the generated project uses `Raukeld.Anvil` and
+`Raukeld.Anvil.Razor` package reference. Use `Publish-AnvilPackages.ps1` to create a
 local package feed, or publish both packages to your NuGet feed. For a local
 feed during development:
 

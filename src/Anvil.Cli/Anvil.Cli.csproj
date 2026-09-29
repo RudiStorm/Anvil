@@ -7,8 +7,8 @@
     <Nullable>enable</Nullable>
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>anvil</ToolCommandName>
-    <PackageId>Anvil.Cli</PackageId>
-    <Version>0.1.0</Version>
+    <PackageId>Raukeld.Anvil.Cli</PackageId>
+    <Version>0.1.2</Version>
     <Authors>Anvil contributors</Authors>
     <Description>CLI tools for Anvil applications.</Description>
     <PackageTags>dotnet;web;razor;ssr</PackageTags>

@@ -10,8 +10,14 @@ dotnet pack src/Anvil/Anvil.csproj --no-build --output ./artifacts
 dotnet pack src/Anvil.Razor/Anvil.Razor.csproj --no-build --output ./artifacts
 ```
 
-Inspect both packages before publishing. `Anvil.Razor` should contain its
-static web assets, including the bundled HTMX runtime.
+Inspect both packages before publishing. `Raukeld.Anvil.Razor` should contain its
+static web assets, including the bundled HTMX runtime. A generated Identity
+application should contain the `Public`, `Auth`, and `App` page folders and an
+applied initial migration after `anvil new` completes.
 
 Do not publish packages containing local application configuration, credentials,
 or generated sample data.
+
+Generated-project acceptance must also confirm that the complete
+`Components/Controls` catalog, `/components` showcase, and optional control
+script compile without a Node or frontend build dependency.

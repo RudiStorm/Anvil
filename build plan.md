@@ -496,7 +496,7 @@ straightforward to publish, secure, upgrade, and validate in production.
 
 ### Packaging and Releases
 
-- NuGet package metadata for Anvil and Anvil.Razor. [x]
+- NuGet package metadata for Raukeld.Anvil and Raukeld.Anvil.Razor. [x]
 - Package build validation and local package smoke tests. [x]
 - Versioning and release documentation. [x]
 
@@ -662,6 +662,8 @@ Vue, Vite, or a separate frontend application mandatory.
 - Generate search, pagination, sorting, loading, empty, error, validation, authorization, audit, and tenant-isolation behavior. [x]
 - Generate partial table updates through `data-anvil-partial-form` and targeted fragment endpoints. [x]
 - Generate typed route/link definitions and endpoint integration tests. [x]
+- Generate a polished Identity starter experience with organized public, auth, and authenticated dashboard routes, automatic initial migration application, and explicit route authorization metadata. [x]
+- Generate an editable shadcn-style Razor control catalog, native progressive-enhancement fallbacks, a public component showcase, and starter pages that demonstrate the generated controls without a Node build pipeline. [x]
 - Do not generate Vue, Vite, Pinia, TanStack Query, Zod, or TypeScript for the default application. [x]
 
 ### Phase 10: CLI and Project Experience

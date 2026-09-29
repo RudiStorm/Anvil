@@ -13,6 +13,19 @@ public static class Program
 
 internal static class AnvilCli
 {
+    internal sealed record InitializationCommand(string Display, string Command, string[] Arguments);
+
+    internal static IReadOnlyList<GeneratedControl> ControlCatalog => GeneratedControlCatalog.Items;
+
+    internal static IReadOnlyList<InitializationCommand> InitializationCommands(string projectFile) =>
+    [
+        new("restore", "restore", [projectFile]),
+        new("tool restore", "tool", ["restore"]),
+        new("ef migrations add InitialCreate", "ef", ["migrations", "add", "InitialCreate", "--project", projectFile]),
+        new("ef database update", "ef", ["database", "update", "--project", projectFile]),
+        new("build", "build", [projectFile, "--no-restore"])
+    ];
+
     public static async Task<int> RunAsync(string[] args)
     {
         if (args.Length == 1 && (args[0] is "--version" or "-v"))
@@ -125,8 +138,14 @@ internal static class AnvilCli
         Directory.CreateDirectory(projectDirectory);
         var namespaceName = ToIdentifier(name);
         var sourceRoot = FindSourceRoot(Directory.GetCurrentDirectory());
+        if (packageSource is null && sourceRoot is null)
+        {
+            var installedPackageSource = Path.Combine(AppContext.BaseDirectory, "packages");
+            if (Directory.Exists(installedPackageSource))
+                packageSource = installedPackageSource;
+        }
         var projectReferences = sourceRoot is null
-            ? "    <PackageReference Include=\"Anvil\" Version=\"0.1.0\" />\n    <PackageReference Include=\"Anvil.Razor\" Version=\"0.1.0\" />"
+            ? "    <PackageReference Include=\"Raukeld.Anvil\" Version=\"0.1.2\" />\n    <PackageReference Include=\"Raukeld.Anvil.Razor\" Version=\"0.1.2\" />"
             : $"    <ProjectReference Include=\"{RelativeProjectReference(projectDirectory, Path.Combine(sourceRoot, "src", "Anvil", "Anvil.csproj"))}\" />\n    <ProjectReference Include=\"{RelativeProjectReference(projectDirectory, Path.Combine(sourceRoot, "src", "Anvil.Razor", "Anvil.Razor.csproj"))}\" />";
 
         WriteFile(projectDirectory, $"{namespaceName}.csproj", ProjectFile(projectReferences, database));
@@ -138,8 +157,17 @@ internal static class AnvilCli
         WriteFile(projectDirectory, "appsettings.json", AppSettingsFile());
         WriteFile(projectDirectory, ".config/dotnet-tools.json", DotnetToolsManifestFile());
         WriteFile(projectDirectory, "Components/App.razor", AppFile(namespaceName));
+        WriteFile(projectDirectory, "wwwroot/anvil-controls.js", ControlsScriptFile());
         WriteFile(projectDirectory, "Components/Layout/MainLayout.razor", LayoutFile());
-        WriteFile(projectDirectory, "Components/Pages/Home.razor", HomeFile());
+        WriteGeneratedControls(projectDirectory, namespaceName);
+        WriteFile(projectDirectory, "Components/Pages/Public/Home.razor", PublicHomeFile());
+        WriteFile(projectDirectory, "Components/Pages/Public/Components.razor", ComponentsShowcaseFile());
+        if (profile == "identity")
+        {
+            WriteFile(projectDirectory, "Components/Pages/Auth/Login.razor", LoginFile());
+            WriteFile(projectDirectory, "Components/Pages/Auth/Register.razor", RegisterFile());
+            WriteFile(projectDirectory, "Components/Pages/App/Dashboard.razor", DashboardFile());
+        }
         WriteFile(projectDirectory, "Components/_Imports.razor", ImportsFile(namespaceName));
         WriteFile(projectDirectory, "wwwroot/app.css", CssFile());
         if (packageSource is not null)
@@ -152,14 +180,15 @@ internal static class AnvilCli
 
         if (!noRestore)
         {
-            if (await RunProjectProcessAsync(projectDirectory, "restore", namespaceName + ".csproj") != 0
-                || await RunProjectProcessAsync(projectDirectory, "tool", "restore") != 0
-                || await RunProjectProcessAsync(projectDirectory, "ef", "migrations", "add", "InitialCreate", "--project", namespaceName + ".csproj") != 0
-                || await RunProjectProcessAsync(projectDirectory, "build", namespaceName + ".csproj", "--no-restore") != 0)
+            foreach (var command in InitializationCommands(namespaceName + ".csproj"))
             {
-                Console.Error.WriteLine("Project initialization failed. Use --no-restore to generate files without initialization.");
-                return 1;
+                if (await RunProjectProcessAsync(projectDirectory, command.Command, command.Arguments) != 0)
+                {
+                    Console.Error.WriteLine($"Project initialization failed during '{command.Display}'. Use --no-restore to generate files without initialization.");
+                    return 1;
+                }
             }
+            Console.WriteLine("  database: initialized");
         }
 
         Console.WriteLine($"Created Anvil app at {projectDirectory}");
@@ -1019,6 +1048,215 @@ internal static class AnvilCli
         File.WriteAllText(path, content, Encoding.UTF8);
     }
 
+    private static void WriteGeneratedControls(string projectDirectory, string namespaceName)
+    {
+        WriteFile(projectDirectory, Path.Combine("Components", "Controls", "ControlTypes.cs"), GeneratedControlTypesFile(namespaceName));
+        foreach (var control in ControlCatalog)
+        foreach (var file in control.Files)
+            WriteFile(projectDirectory, Path.Combine("Components", "Controls", control.Folder, file), GeneratedControlFile(control, namespaceName));
+    }
+
+    private static string GeneratedControlTypesFile(string namespaceName) => $$"""
+        namespace {{namespaceName}}.Components.Controls;
+
+        public enum AnvilButtonVariant { Primary, Secondary, Outline, Ghost, Destructive, Link }
+        public enum AnvilButtonSize { Small, Default, Large, Icon }
+        """;
+
+    private static string GeneratedControlFile(GeneratedControl control, string namespaceName)
+    {
+        if (control.Name == "Button")
+            return $$"""
+                @namespace {{namespaceName}}.Components.Controls
+
+                <button class="anvil-button anvil-button-@Variant.ToString().ToLowerInvariant() anvil-button-@Size.ToString().ToLowerInvariant() @Class"
+                        type="@Type" disabled="@Disabled" @attributes="AdditionalAttributes">
+                    @ChildContent
+                </button>
+
+                @code {
+                    [Parameter] public AnvilButtonVariant Variant { get; set; } = AnvilButtonVariant.Primary;
+                    [Parameter] public AnvilButtonSize Size { get; set; } = AnvilButtonSize.Default;
+                    [Parameter] public string Type { get; set; } = "button";
+                    [Parameter] public string? Class { get; set; }
+                    [Parameter] public bool Disabled { get; set; }
+                    [Parameter] public RenderFragment? ChildContent { get; set; }
+                    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
+                }
+                """;
+
+        if (control.Name == "Input")
+            return $$"""
+                @namespace {{namespaceName}}.Components.Controls
+
+                <input id="@Id" name="@Name" class="anvil-input @Class" value="@Value" type="@Type"
+                       placeholder="@Placeholder" disabled="@Disabled" required="@Required"
+                       @oninput="HandleInput" @attributes="AdditionalAttributes" />
+
+                @code {
+                    [Parameter] public string? Id { get; set; }
+                    [Parameter] public string? Name { get; set; }
+                    [Parameter] public string? Value { get; set; }
+                    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+                    [Parameter] public string Type { get; set; } = "text";
+                    [Parameter] public string? Placeholder { get; set; }
+                    [Parameter] public string? Class { get; set; }
+                    [Parameter] public bool Disabled { get; set; }
+                    [Parameter] public bool Required { get; set; }
+                    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
+
+                    private Task HandleInput(ChangeEventArgs args) => ValueChanged.InvokeAsync(args.Value?.ToString());
+                }
+                """;
+
+        if (control.Name == "Field")
+            return $$"""
+                @namespace {{namespaceName}}.Components.Controls
+
+                <div class="anvil-field @Class">
+                    @if (!string.IsNullOrWhiteSpace(Label)) { <label for="@Id">@Label</label> }
+                    @ChildContent
+                    @if (!string.IsNullOrWhiteSpace(Description)) { <p class="anvil-field-description">@Description</p> }
+                    @if (!string.IsNullOrWhiteSpace(Error)) { <p class="anvil-field-error" role="alert">@Error</p> }
+                </div>
+
+                @code {
+                    [Parameter] public string? Id { get; set; }
+                    [Parameter] public string? Label { get; set; }
+                    [Parameter] public string? Description { get; set; }
+                    [Parameter] public string? Error { get; set; }
+                    [Parameter] public string? Class { get; set; }
+                    [Parameter] public RenderFragment? ChildContent { get; set; }
+                }
+                """;
+
+        if (control.Name is "Accordion" or "Collapsible")
+            return $$"""
+                @namespace {{namespaceName}}.Components.Controls
+
+                <details class="anvil-{{control.Folder.ToLowerInvariant()}} @Class" data-anvil-control="{{control.Name}}" @attributes="AdditionalAttributes">
+                    <summary>@Title</summary>
+                    @ChildContent
+                </details>
+
+                @code {
+                    [Parameter] public string Title { get; set; } = "Details";
+                    [Parameter] public string? Class { get; set; }
+                    [Parameter] public RenderFragment? ChildContent { get; set; }
+                    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
+                }
+                """;
+
+        if (control.Name == "Dialog")
+            return $$"""
+                @namespace {{namespaceName}}.Components.Controls
+
+                <button id="@TriggerId" type="button" class="anvil-dialog-trigger @Class" popovertarget="@ContentId" aria-controls="@ContentId" aria-expanded="@Open">
+                    @TriggerLabel
+                </button>
+                <div id="@ContentId" class="anvil-dialog" data-anvil-control="Dialog" role="dialog" aria-modal="true" popover>
+                    @ChildContent
+                </div>
+
+                @code {
+                    [Parameter] public string TriggerId { get; set; } = "anvil-dialog-trigger";
+                    [Parameter] public string ContentId { get; set; } = "anvil-dialog-content";
+                    [Parameter] public string TriggerLabel { get; set; } = "Open dialog";
+                    [Parameter] public bool Open { get; set; }
+                    [Parameter] public string? Class { get; set; }
+                    [Parameter] public RenderFragment? ChildContent { get; set; }
+                }
+                """;
+
+        if (control.Name is "Calendar" or "DatePicker")
+            return $$"""
+                @namespace {{namespaceName}}.Components.Controls
+
+                <div class="anvil-{{control.Folder.ToLowerInvariant()}}" data-anvil-control="{{control.Name}}">
+                    <label for="@Id">@Label</label>
+                    <input id="@Id" name="@Name" type="date" value="@Value" aria-label="@Label" @attributes="AdditionalAttributes" />
+                </div>
+
+                @code {
+                    [Parameter] public string Id { get; set; } = "anvil-date";
+                    [Parameter] public string? Name { get; set; }
+                    [Parameter] public string? Value { get; set; }
+                    [Parameter] public string Label { get; set; } = "Date";
+                    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
+                }
+                """;
+
+        if (control.Name is "Chart")
+            return $$"""
+                @namespace {{namespaceName}}.Components.Controls
+
+                <div class="anvil-chart" data-anvil-control="Chart">
+                    <svg viewBox="0 0 320 120" role="img" aria-label="@Label">
+                        <polyline class="anvil-chart-line" points="@Points" fill="none" />
+                    </svg>
+                    <span class="sr-only">@Label: @string.Join(", ", Values)</span>
+                </div>
+
+                @code {
+                    [Parameter] public string Label { get; set; } = "Chart";
+                    [Parameter] public IReadOnlyList<double> Values { get; set; } = Array.Empty<double>();
+                    private string Points => string.Join(" ", Values.Select((value, index) => $"{index * 40},{120 - value:0}"));
+                }
+                """;
+
+        if (control.Name is "Table" or "DataTable")
+            return $$"""
+                @namespace {{namespaceName}}.Components.Controls
+
+                <div class="anvil-{{control.Folder.ToLowerInvariant()}}" data-anvil-control="{{control.Name}}">
+                    <table class="anvil-table" @attributes="AdditionalAttributes">
+                        @ChildContent
+                    </table>
+                </div>
+
+                @code {
+                    [Parameter] public string? Class { get; set; }
+                    [Parameter] public RenderFragment? ChildContent { get; set; }
+                    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
+                }
+                """;
+
+        if (control.Name == "Card")
+            return $$"""
+                @namespace {{namespaceName}}.Components.Controls
+
+                <section class="anvil-card @Class" @attributes="AdditionalAttributes">
+                    @ChildContent
+                </section>
+
+                @code {
+                    [Parameter] public string? Class { get; set; }
+                    [Parameter] public RenderFragment? ChildContent { get; set; }
+                    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
+                }
+                """;
+
+        return $$"""
+            @namespace {{namespaceName}}.Components.Controls
+
+            <div class="anvil-control anvil-{{control.Folder.ToLowerInvariant()}} @Class" data-anvil-control="{{control.Name}}" @attributes="AdditionalAttributes">
+                @ChildContent
+            </div>
+
+            @code {
+                [Parameter] public string? Class { get; set; }
+                [Parameter] public string? Id { get; set; }
+                [Parameter] public string? Name { get; set; }
+                [Parameter] public string? Value { get; set; }
+                [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+                [Parameter] public bool Disabled { get; set; }
+                [Parameter] public bool Required { get; set; }
+                [Parameter] public RenderFragment? ChildContent { get; set; }
+                [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
+            }
+            """;
+    }
+
     private static string ToIdentifier(string name)
     {
         var builder = new StringBuilder();
@@ -1316,7 +1554,7 @@ internal static class AnvilCli
          builder.Services.AddAnvilBackgroundJobs();
          builder.Services.AddAnvilScheduling();
          builder.Services.AddAnvilTransactionalOutbox<AppDbContext>();
-         {{(identity ? $"builder.Services.AddAnvilIdentityContracts();\nbuilder.Services.AddAnvilIdentity<{namespaceName}.Security.ApplicationUser, AppDbContext>();" : "")}}
+         {{(identity ? IdentityRegistration(namespaceName) : "")}}
 
         var app = builder.Build();
          app.UseAnvilProduction();
@@ -1352,6 +1590,33 @@ internal static class AnvilCli
                 modelBuilder.Entity<AuditEntry>().ConfigureAnvilAudit();
             }
         }
+        """;
+
+    private static string IdentityRegistration(string namespaceName) => $$"""
+         builder.Services.AddAnvilIdentityContracts();
+         builder.Services.Configure<AnvilIdentityOptions>(options =>
+         {
+             // Keep the rendered Razor pages at friendly browser routes while
+             // avoiding a route collision with their POST handlers.
+             options.LoginPath = "/account/login/submit";
+             options.RegisterPath = "/account/register/submit";
+         });
+         builder.Services.AddAnvilIdentity<{{namespaceName}}.Security.ApplicationUser, AppDbContext>(configureCookie: options =>
+         {
+             options.Events.OnRedirectToLogin = context =>
+             {
+                 if (context.Request.Path.StartsWithSegments("/api"))
+                 {
+                     context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                 }
+                 else
+                 {
+                     context.Response.Redirect("/account/login");
+                 }
+
+                 return Task.CompletedTask;
+             };
+         });
         """;
 
     private static string ApplicationUserFile(string namespaceName) => $$"""
@@ -1423,39 +1688,233 @@ internal static class AnvilCli
                     </LayoutView>
                 </NotFound>
             </Router>
+            <script src="anvil-controls.js"></script>
             <script src="_framework/blazor.web.js"></script>
         </body>
         </html>
         """;
 
-    private static string LayoutFile() => """
-        @inherits LayoutComponentBase
-
-        <header>
-            <a href="/">Anvil</a>
-        </header>
-        <main>
-            @Body
-        </main>
+    private static string ControlsScriptFile() => """
+        (() => {
+            const initialize = (root = document) => {
+                root.querySelectorAll?.('[data-anvil-control]').forEach((element) => {
+                    element.dataset.anvilReady = 'true';
+                });
+            };
+            document.addEventListener('DOMContentLoaded', () => initialize());
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape' && document.activeElement instanceof HTMLElement)
+                    document.activeElement.blur();
+            });
+            window.AnvilControls = { initialize };
+        })();
         """;
 
-    private static string HomeFile() => """
-        @page "/"
+    private static string LayoutFile() => """
+        @inherits LayoutComponentBase
+        @inject RequestContext Request
 
-        <PageTitle>Home</PageTitle>
-        <h1>Hello from Anvil</h1>
-        <p>Your server-rendered application is ready.</p>
+        <div class="site-shell">
+            <header class="topbar">
+                <a class="brand" href="@Request.Link("/")"><span class="brand-mark">A</span><span>Anvil<span class="brand-dot">.</span></span></a>
+                <nav class="topnav" aria-label="Primary navigation"><a href="@Request.Link("/")">Home</a><a href="@Request.Link("/dashboard")">Dashboard</a><a href="@Request.Link("/account/login")">Sign in</a></nav>
+            </header>
+            <main class="page-content">@Body</main>
+            <footer class="page-footer">Built with Anvil <span aria-hidden="true">·</span> Server-rendered with Razor</footer>
+        </div>
+        """;
+
+    private static string PublicHomeFile() => """
+        @attribute [Microsoft.AspNetCore.Authorization.AllowAnonymous]
+        @page "/"
+        @inject RequestContext Request
+
+        <PageTitle>Welcome</PageTitle>
+        <div class="marketing-shell">
+            <AnvilBadge>Built for server-rendered .NET</AnvilBadge>
+            <h1>Ship your next product with a beautiful server-rendered foundation.</h1>
+            <p class="hero-copy">Anvil gives you Razor, ASP.NET Core, Identity, persistence, and a polished starting point so you can focus on the product.</p>
+            <div class="hero-actions">
+                <a class="button button-primary" href="@Request.Link("/account/register")">Create an account <span aria-hidden="true">→</span></a>
+                <a class="button button-secondary" href="@Request.Link("/account/login")">Sign in</a>
+            </div>
+            <div class="feature-grid" aria-label="Starter features">
+                <AnvilCard><span class="feature-icon">✦</span><h2>Fast by default</h2><p>Server-rendered HTML with no frontend build pipeline to maintain.</p></AnvilCard>
+                <AnvilCard><span class="feature-icon">◈</span><h2>Ready for users</h2><p>Registration, login, sessions, and protected pages are already wired.</p></AnvilCard>
+                <AnvilCard><span class="feature-icon">⌁</span><h2>Built to grow</h2><p>Ordinary C#, EF Core, and ASP.NET Core primitives remain yours.</p></AnvilCard>
+            </div>
+        </div>
+        """;
+
+    private static string ComponentsShowcaseFile()
+    {
+        var builder = new StringBuilder("""
+            @attribute [Microsoft.AspNetCore.Authorization.AllowAnonymous]
+            @page "/components"
+
+            <PageTitle>Components</PageTitle>
+            <div class="showcase-shell">
+                <span class="eyebrow">Anvil controls</span>
+                <h1>A local component library for your application.</h1>
+                <p class="hero-copy">Every control below is source in this project. Customize it, copy its composition, or delete it when you do not need it.</p>
+                <div class="showcase-grid">
+            """);
+
+        foreach (var control in ControlCatalog)
+        {
+            builder.AppendLine($"        <AnvilCard>");
+            builder.AppendLine($"            <span class=\"eyebrow\">{control.ShowcaseLabel}</span>");
+            builder.AppendLine($"            <h2>{control.ShowcaseLabel}</h2>");
+            builder.AppendLine($"            <Anvil{control.Name}>Example {control.ShowcaseLabel}</Anvil{control.Name}>");
+            builder.AppendLine($"            <code>&lt;Anvil{control.Name}&gt;...&lt;/Anvil{control.Name}&gt;</code>");
+            builder.AppendLine("        </AnvilCard>");
+        }
+
+        builder.AppendLine("""
+                </div>
+            </div>
+            """);
+        return builder.ToString();
+    }
+
+    private static string LoginFile() => """
+        @attribute [Microsoft.AspNetCore.Authorization.AllowAnonymous]
+        @page "/account/login"
+        @inject RequestContext Request
+
+        <PageTitle>Sign in</PageTitle>
+        <div class="auth-shell">
+            <div class="auth-heading"><span class="eyebrow">Welcome back</span><h1>Sign in to your workspace.</h1><p>Enter your details to continue.</p></div>
+            @if (Request.Request.Query.ContainsKey("error"))
+            {
+                <div class="form-alert" role="alert">Those details could not be verified. Please try again.</div>
+            }
+            <form method="post" action="/account/login/submit" class="auth-form">
+                <AntiforgeryToken />
+                <AnvilField Id="login-username" Label="Username"><AnvilInput Id="login-username" Name="UserName" AdditionalAttributes="@(new Dictionary<string, object> { ["autocomplete"] = "username", ["required"] = true })" /></AnvilField>
+                <AnvilField Id="login-password" Label="Password"><AnvilInput Id="login-password" Name="Password" Type="password" AdditionalAttributes="@(new Dictionary<string, object> { ["autocomplete"] = "current-password", ["required"] = true })" /></AnvilField>
+                <label class="checkbox-label"><input name="RememberMe" type="checkbox" value="true" /> Remember me</label>
+                <AnvilButton Type="submit" Class="button-wide">Sign in <span aria-hidden="true">→</span></AnvilButton>
+            </form>
+            <p class="auth-switch">New here? <a href="/account/register">Create an account</a></p>
+        </div>
+        """;
+
+    private static string RegisterFile() => """
+        @attribute [Microsoft.AspNetCore.Authorization.AllowAnonymous]
+        @page "/account/register"
+        @inject RequestContext Request
+
+        <PageTitle>Create account</PageTitle>
+        <div class="auth-shell">
+            <div class="auth-heading"><span class="eyebrow">Get started</span><h1>Create your account.</h1><p>Set up the first user for your new Anvil application.</p></div>
+            @if (Request.Request.Query.ContainsKey("error"))
+            {
+                <div class="form-alert" role="alert">Please review your details and try again.</div>
+            }
+            <form method="post" action="/account/register/submit" class="auth-form">
+                <AntiforgeryToken />
+                <AnvilField Id="register-username" Label="Username"><AnvilInput Id="register-username" Name="UserName" AdditionalAttributes="@(new Dictionary<string, object> { ["autocomplete"] = "username", ["required"] = true })" /></AnvilField>
+                <AnvilField Id="register-email" Label="Email"><AnvilInput Id="register-email" Name="Email" Type="email" AdditionalAttributes="@(new Dictionary<string, object> { ["autocomplete"] = "email", ["required"] = true })" /></AnvilField>
+                <AnvilField Id="register-password" Label="Password"><AnvilInput Id="register-password" Name="Password" Type="password" AdditionalAttributes="@(new Dictionary<string, object> { ["autocomplete"] = "new-password", ["required"] = true })" /></AnvilField>
+                <AnvilButton Type="submit" Class="button-wide">Create account <span aria-hidden="true">→</span></AnvilButton>
+            </form>
+            <p class="auth-switch">Already have an account? <a href="/account/login">Sign in</a></p>
+        </div>
+        """;
+
+    private static string DashboardFile() => """
+        @attribute [Microsoft.AspNetCore.Authorization.Authorize]
+        @page "/dashboard"
+        @inject RequestContext Request
+
+        <PageTitle>Dashboard</PageTitle>
+        <div class="page-heading"><div><span class="eyebrow">Your workspace</span><h1>Good morning, @Request.HttpContext.User.Identity?.Name.</h1><p class="lede">Here is a clear place to start building your product.</p></div><form method="post" action="/account/logout"><AntiforgeryToken /><button class="button button-secondary" type="submit">Sign out</button></form></div>
+        <section class="metric-grid" aria-label="Workspace summary">
+            <AnvilCard><span class="metric-label">Projects</span><strong class="metric-value">0</strong><span class="metric-change">Ready for your first one</span></AnvilCard>
+            <AnvilCard><span class="metric-label">Members</span><strong class="metric-value">1</strong><span class="metric-change">Your workspace is private</span></AnvilCard>
+            <AnvilCard><span class="metric-label">Status</span><AnvilBadge>Live</AnvilBadge><span class="metric-change">Everything is ready</span></AnvilCard>
+        </section>
+        <AnvilTable><thead><tr><th>Starter area</th><th>Status</th></tr></thead><tbody><tr><td>Authentication</td><td><AnvilBadge>Ready</AnvilBadge></td></tr><tr><td>Persistence</td><td><AnvilBadge>Connected</AnvilBadge></td></tr></tbody></AnvilTable>
+        <section class="panel welcome-panel"><span class="feature-icon">✦</span><div><h2>Your application is ready.</h2><p>Start by replacing this dashboard with the first workflow your users need. Add pages under <code>Components/Pages</code>, keep public and authenticated routes explicit, and let Anvil handle the request lifecycle.</p></div></section>
         """;
 
     private static string ImportsFile(string namespaceName) => $$"""
+        @using Anvil
         @using Microsoft.AspNetCore.Components
         @using Microsoft.AspNetCore.Components.Web
+        @using Microsoft.AspNetCore.Components.Forms
         @using {{namespaceName}}.Components.Layout
+        @using {{namespaceName}}.Components.Controls
         """;
 
     private static string CssFile() => """
-        body { font-family: system-ui, sans-serif; margin: 0 auto; max-width: 52rem; padding: 2rem; }
-        header { border-bottom: 1px solid #d7dde5; margin-bottom: 2rem; padding-bottom: 1rem; }
+        :root { color-scheme: light; --background: #fafafa; --foreground: #18181b; --muted: #71717a; --border: #e4e4e7; --input: #e4e4e7; --card: #ffffff; --popover: #ffffff; --primary: #18181b; --primary-foreground: #fafafa; --secondary: #f4f4f5; --secondary-foreground: #18181b; --accent: #f4f4f5; --accent-foreground: #18181b; --destructive: #dc2626; --destructive-foreground: #fafafa; --soft: #f4f4f5; --ring: #a1a1aa; --radius: .65rem; }
+        * { box-sizing: border-box; }
+        body { background: var(--background); color: var(--foreground); font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; }
+        a { color: inherit; text-decoration: none; }
+        .site-shell { min-height: 100vh; display: flex; flex-direction: column; }
+        .topbar { align-items: center; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; margin: 0 auto; padding: 1.25rem 2rem; width: min(100%, 76rem); }
+        .brand { align-items: center; display: inline-flex; font-size: 1.05rem; font-weight: 700; gap: .7rem; letter-spacing: -.02em; }
+        .brand-mark { align-items: center; background: var(--accent); border-radius: .65rem; color: var(--accent-foreground); display: inline-flex; font-size: .9rem; height: 2rem; justify-content: center; width: 2rem; }
+        .brand-dot { color: #a1a1aa; }
+        .topnav { align-items: center; display: flex; gap: 1.25rem; color: var(--muted); font-size: .9rem; }
+        .topnav a:hover, .auth-switch a:hover { color: var(--foreground); }
+        .page-content { flex: 1; margin: 0 auto; padding: 4rem 2rem; width: min(100%, 76rem); }
+        .page-footer { color: var(--muted); font-size: .8rem; margin: 0 auto; padding: 2rem; width: min(100%, 76rem); }
+        .marketing-shell { margin: 3rem auto; max-width: 66rem; text-align: center; }
+        .eyebrow { color: var(--muted); font-size: .72rem; font-weight: 700; letter-spacing: .13em; text-transform: uppercase; }
+        h1 { font-size: clamp(2.6rem, 7vw, 5.5rem); letter-spacing: -.065em; line-height: .98; margin: 1.15rem 0; max-width: 62rem; }
+        h2 { letter-spacing: -.03em; margin: 0 0 .5rem; }
+        .hero-copy, .lede { color: var(--muted); font-size: 1.1rem; line-height: 1.7; margin: 0 auto; max-width: 42rem; }
+        .showcase-shell { margin: 1rem auto; max-width: 70rem; }
+        .showcase-shell h1 { font-size: clamp(2.6rem, 6vw, 4.8rem); max-width: 54rem; }
+        .showcase-grid { display: grid; gap: 1rem; grid-template-columns: repeat(3, 1fr); margin-top: 2rem; }
+        .showcase-grid code { color: var(--muted); display: block; margin-top: 1rem; overflow-wrap: anywhere; }
+        .hero-actions { display: flex; flex-wrap: wrap; gap: .75rem; justify-content: center; margin: 2rem 0 4rem; }
+        .button, .anvil-button { align-items: center; border: 1px solid transparent; border-radius: var(--radius); cursor: pointer; display: inline-flex; font: inherit; font-size: .9rem; font-weight: 600; gap: .6rem; justify-content: center; min-height: 2.75rem; padding: .7rem 1.05rem; transition: transform .15s ease, background .15s ease, border-color .15s ease; }
+        .button:hover { transform: translateY(-1px); }
+        .button-primary, .anvil-button-primary { background: var(--primary); color: var(--primary-foreground); }
+        .button-primary:hover { background: #3f3f46; }
+        .button-secondary, .anvil-button-secondary { background: var(--secondary); border-color: var(--border); color: var(--secondary-foreground); }
+        .anvil-button-outline { background: transparent; border-color: var(--border); }
+        .anvil-button-ghost { background: transparent; }
+        .anvil-button-destructive { background: var(--destructive); color: var(--destructive-foreground); }
+        .anvil-button-link { background: transparent; color: var(--primary); text-decoration: underline; }
+        .anvil-button-small { min-height: 2.25rem; padding: .5rem .8rem; }
+        .anvil-button-large { min-height: 3rem; padding: .8rem 1.25rem; }
+        .anvil-button-icon { min-height: 2.75rem; padding: .7rem; width: 2.75rem; }
+        .anvil-card { background: var(--card); border: 1px solid var(--border); border-radius: calc(var(--radius) + .35rem); box-shadow: 0 12px 32px rgb(24 24 27 / 4%); padding: 1.35rem; }
+        .button-secondary:hover { background: var(--soft); }
+        .button-wide { width: 100%; }
+        .feature-grid, .metric-grid { display: grid; gap: 1rem; grid-template-columns: repeat(3, 1fr); text-align: left; }
+        .feature-card, .metric-card, .panel { background: var(--card); border: 1px solid var(--border); border-radius: 1rem; box-shadow: 0 12px 32px rgb(24 24 27 / 4%); padding: 1.35rem; }
+        .feature-card p, .welcome-panel p { color: var(--muted); line-height: 1.6; margin: 0; }
+        .feature-icon { align-items: center; background: var(--soft); border-radius: .65rem; display: inline-flex; height: 2.3rem; justify-content: center; margin-bottom: 1rem; width: 2.3rem; }
+        .auth-shell { margin: 2rem auto; max-width: 28rem; }
+        .auth-heading { margin-bottom: 1.5rem; }
+        .auth-heading h1 { font-size: clamp(2.3rem, 5vw, 3.6rem); }
+        .auth-heading p { color: var(--muted); margin: 0; }
+        .auth-form { background: var(--card); border: 1px solid var(--border); border-radius: 1rem; box-shadow: 0 16px 40px rgb(24 24 27 / 5%); display: grid; gap: 1rem; padding: 1.35rem; }
+        .form-alert { background: #fef2f2; border: 1px solid #fecaca; border-radius: .65rem; color: #b91c1c; font-size: .85rem; margin-bottom: 1rem; padding: .8rem .9rem; }
+        label { display: grid; font-size: .85rem; font-weight: 600; gap: .45rem; }
+        input { background: var(--background); border: 1px solid var(--border); border-radius: .55rem; color: var(--foreground); font: inherit; min-height: 2.75rem; outline: none; padding: .65rem .75rem; }
+        input:focus { border-color: var(--ring); box-shadow: 0 0 0 3px rgb(161 161 170 / 22%); }
+        .checkbox-label { align-items: center; display: flex; flex-direction: row; font-weight: 400; }
+        .checkbox-label input { min-height: auto; }
+        .auth-switch { color: var(--muted); font-size: .9rem; text-align: center; }
+        .auth-switch a { color: var(--foreground); font-weight: 600; }
+        .page-heading { align-items: end; display: flex; justify-content: space-between; margin-bottom: 2rem; }
+        .page-heading h1 { font-size: clamp(2.3rem, 5vw, 4.2rem); margin: .65rem 0; }
+        .page-heading .lede { margin: 0; }
+        .metric-grid { margin-bottom: 1rem; }
+        .metric-label, .metric-change { color: var(--muted); display: block; font-size: .8rem; }
+        .metric-value { display: block; font-size: 2rem; letter-spacing: -.05em; margin: .75rem 0 .35rem; }
+        .metric-status { color: #15803d; }
+        .welcome-panel { align-items: flex-start; display: flex; gap: 1rem; margin-top: 1rem; }
+        code { background: var(--soft); border-radius: .35rem; font-size: .85em; padding: .15rem .35rem; }
+        @media (max-width: 720px) { .topbar { padding: 1rem; } .topnav { gap: .7rem; font-size: .8rem; } .page-content { padding: 2.5rem 1rem; } .feature-grid, .metric-grid, .showcase-grid { grid-template-columns: 1fr; } .page-heading { align-items: flex-start; flex-direction: column; gap: 1rem; } .marketing-shell { margin: 1rem auto; } h1 { font-size: clamp(2.6rem, 14vw, 4rem); } }
+        @media (prefers-color-scheme: dark) { :root { color-scheme: dark; --background: #09090b; --foreground: #fafafa; --muted: #a1a1aa; --border: #27272a; --input: #27272a; --card: #18181b; --popover: #18181b; --primary: #fafafa; --primary-foreground: #18181b; --secondary: #27272a; --secondary-foreground: #fafafa; --accent: #27272a; --accent-foreground: #fafafa; --destructive: #ef4444; --destructive-foreground: #fafafa; --soft: #27272a; --ring: #71717a; } .button-primary:hover, .anvil-button-primary:hover { background: #e4e4e7; } .metric-status { color: #4ade80; } }
         """;
 
     private static string Dockerfile(string applicationName) => $$"""

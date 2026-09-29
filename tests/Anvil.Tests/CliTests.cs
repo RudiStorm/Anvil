@@ -201,11 +201,92 @@ public sealed class CliTests
             Assert.Contains("AddAnvilIdentityContracts", program);
             Assert.Contains("UseAuthentication", program);
             Assert.Contains("UseAuthorization", program);
+            Assert.Contains("Redirect(\"/account/login\")", program);
+            Assert.Contains("StartsWithSegments(\"/api\")", program);
             Assert.Contains("MapAnvilIdentityEndpoints<Store.Security.ApplicationUser>", program);
+            Assert.Contains("options.LoginPath = \"/account/login/submit\"", program);
+            Assert.Contains("options.RegisterPath = \"/account/register/submit\"", program);
             Assert.True(File.Exists(Path.Combine(root, "Store", "Data", "AppDbContext.cs")));
             Assert.True(File.Exists(Path.Combine(root, "Store", "appsettings.json")));
             Assert.Contains("dotnet-ef", await File.ReadAllTextAsync(Path.Combine(root, "Store", ".config", "dotnet-tools.json")));
             Assert.Contains("10.0.12", await File.ReadAllTextAsync(Path.Combine(root, "Store", ".config", "dotnet-tools.json")));
+        }
+        finally
+        {
+            Directory.SetCurrentDirectory(original);
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task New_generates_explicit_public_auth_and_app_route_structure()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "anvil-route-structure", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        var original = Directory.GetCurrentDirectory();
+
+        try
+        {
+            Directory.SetCurrentDirectory(root);
+            Assert.Equal(0, await AnvilCli.RunAsync(["new", "Starter", "--no-restore"]));
+            var app = Path.Combine(root, "Starter", "Components", "Pages");
+
+            var home = await File.ReadAllTextAsync(Path.Combine(app, "Public", "Home.razor"));
+            var login = await File.ReadAllTextAsync(Path.Combine(app, "Auth", "Login.razor"));
+            var register = await File.ReadAllTextAsync(Path.Combine(app, "Auth", "Register.razor"));
+            var dashboard = await File.ReadAllTextAsync(Path.Combine(app, "App", "Dashboard.razor"));
+
+            Assert.Contains("@page \"/\"", home);
+            Assert.Contains("AllowAnonymous", home);
+            Assert.Contains("<AnvilBadge", home);
+            Assert.Contains("<AnvilCard", home);
+            Assert.Contains("@page \"/account/login\"", login);
+            Assert.Contains("AllowAnonymous", login);
+            Assert.Contains("@page \"/account/register\"", register);
+            Assert.Contains("AllowAnonymous", register);
+            Assert.Contains("action=\"/account/login/submit\"", login);
+            Assert.Contains("<AntiforgeryToken />", login);
+            Assert.Contains("Name=\"UserName\"", login);
+            Assert.Contains("Name=\"Password\"", login);
+            Assert.Contains("<AnvilField", login);
+            Assert.Contains("<AnvilInput", login);
+            Assert.Contains("<AnvilButton", login);
+            Assert.Contains("action=\"/account/register/submit\"", register);
+            Assert.Contains("<AntiforgeryToken />", register);
+            Assert.Contains("Name=\"Email\"", register);
+            Assert.Contains("<AnvilField", register);
+            Assert.Contains("@page \"/dashboard\"", dashboard);
+            Assert.Contains("Authorize", dashboard);
+            Assert.Contains("/account/logout", dashboard);
+            Assert.Contains("Your workspace", dashboard);
+            Assert.Contains("<AnvilCard", dashboard);
+            Assert.Contains("<AnvilBadge", dashboard);
+            Assert.Contains("<AnvilTable", dashboard);
+        }
+        finally
+        {
+            Directory.SetCurrentDirectory(original);
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task New_default_profile_omits_identity_only_route_files()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "anvil-default-routes", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        var original = Directory.GetCurrentDirectory();
+
+        try
+        {
+            Directory.SetCurrentDirectory(root);
+            Assert.Equal(0, await AnvilCli.RunAsync(["new", "Minimal", "--profile", "default", "--no-restore"]));
+            var pages = Path.Combine(root, "Minimal", "Components", "Pages");
+
+            Assert.True(File.Exists(Path.Combine(pages, "Public", "Home.razor")));
+            Assert.False(File.Exists(Path.Combine(pages, "Auth", "Login.razor")));
+            Assert.False(File.Exists(Path.Combine(pages, "Auth", "Register.razor")));
+            Assert.False(File.Exists(Path.Combine(pages, "App", "Dashboard.razor")));
         }
         finally
         {
@@ -254,7 +335,227 @@ public sealed class CliTests
             Assert.Equal(0, await AnvilCli.RunAsync(["new", "PackageApp", "--package-source", "D:\\dev-tools-path\\packages", "--no-restore"]));
             var config = await File.ReadAllTextAsync(Path.Combine(root, "PackageApp", "NuGet.config"));
             Assert.Contains("D:\\dev-tools-path\\packages", config);
-            Assert.Contains("Anvil.Razor", await File.ReadAllTextAsync(Path.Combine(root, "PackageApp", "PackageApp.csproj")));
+            var project = await File.ReadAllTextAsync(Path.Combine(root, "PackageApp", "PackageApp.csproj"));
+            Assert.Contains("Raukeld.Anvil", project);
+            Assert.Contains("Raukeld.Anvil.Razor", project);
+        }
+        finally
+        {
+            Directory.SetCurrentDirectory(original);
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void New_initialization_plan_applies_migrations_before_build()
+    {
+        var commands = AnvilCli.InitializationCommands("Starter.csproj");
+
+        Assert.Equal(
+            ["restore", "tool restore", "ef migrations add InitialCreate", "ef database update", "build"],
+            commands.Select(command => command.Display));
+        Assert.Equal("Starter.csproj", commands[2].Arguments[^1]);
+        Assert.Equal("Starter.csproj", commands[3].Arguments[^1]);
+    }
+
+    [Fact]
+    public void Control_catalog_contains_the_complete_generated_component_set()
+    {
+        var expected = new[]
+        {
+            "Accordion", "Alert", "AlertDialog", "AspectRatio", "Attachment", "Avatar", "Badge", "Breadcrumb",
+            "Bubble", "Button", "ButtonGroup", "Calendar", "Card", "Carousel", "Chart", "Checkbox", "Collapsible",
+            "Combobox", "Command", "ContextMenu", "DataTable", "DatePicker", "Dialog", "Direction", "Drawer",
+            "DropdownMenu", "Empty", "Field", "Form", "HoverCard", "Input", "InputGroup", "InputOtp", "Item",
+            "Kbd", "Label", "Marker", "Menubar", "Message", "MessageScroller", "NativeSelect", "NavigationMenu",
+            "Pagination", "Popover", "Progress", "Questionnaire", "RadioGroup", "Resizable", "ScrollArea", "Select",
+            "Separator", "Sheet", "Sidebar", "Skeleton", "Slider", "Spinner", "Switch", "Table", "Tabs", "Textarea",
+            "Toast", "Toggle", "ToggleGroup", "Tooltip", "Typography"
+        };
+
+        Assert.Equal(expected, AnvilCli.ControlCatalog.Select(control => control.Name));
+        Assert.All(AnvilCli.ControlCatalog, control =>
+        {
+            Assert.Equal(control.Name, control.Folder);
+            Assert.NotEmpty(control.Files);
+            Assert.False(string.IsNullOrWhiteSpace(control.ShowcaseLabel));
+        });
+    }
+
+    [Theory]
+    [InlineData("identity")]
+    [InlineData("default")]
+    public async Task New_generates_each_control_as_an_independent_source_entry(string profile)
+    {
+        var root = Path.Combine(Path.GetTempPath(), "anvil-controls", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        var original = Directory.GetCurrentDirectory();
+
+        try
+        {
+            Directory.SetCurrentDirectory(root);
+            Assert.Equal(0, await AnvilCli.RunAsync(["new", "Controls", "--profile", profile, "--no-restore"]));
+            var controlsRoot = Path.Combine(root, "Controls", "Components", "Controls");
+
+            foreach (var control in AnvilCli.ControlCatalog)
+            foreach (var file in control.Files)
+            {
+                var path = Path.Combine(controlsRoot, control.Folder, file);
+                Assert.True(File.Exists(path), path);
+            }
+        }
+        finally
+        {
+            Directory.SetCurrentDirectory(original);
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task New_generates_foundational_controls_with_theming_and_composable_parameters()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "anvil-foundations", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        var original = Directory.GetCurrentDirectory();
+
+        try
+        {
+            Directory.SetCurrentDirectory(root);
+            Assert.Equal(0, await AnvilCli.RunAsync(["new", "Foundations", "--no-restore"]));
+            var app = Path.Combine(root, "Foundations");
+            var button = await File.ReadAllTextAsync(Path.Combine(app, "Components", "Controls", "Button", "AnvilButton.razor"));
+            var card = await File.ReadAllTextAsync(Path.Combine(app, "Components", "Controls", "Card", "AnvilCard.razor"));
+            var css = await File.ReadAllTextAsync(Path.Combine(app, "wwwroot", "app.css"));
+
+            Assert.Contains("AnvilButtonVariant", button);
+            Assert.Contains("Class", button);
+            Assert.Contains("@attributes", button);
+            Assert.Contains("ChildContent", button);
+            Assert.Contains("anvil-card", card);
+            Assert.Contains("--primary", css);
+            Assert.Contains("--background", css);
+            Assert.Contains("--radius", css);
+        }
+        finally
+        {
+            Directory.SetCurrentDirectory(original);
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task New_generates_native_form_controls_with_bindable_contracts()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "anvil-form-controls", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        var original = Directory.GetCurrentDirectory();
+
+        try
+        {
+            Directory.SetCurrentDirectory(root);
+            Assert.Equal(0, await AnvilCli.RunAsync(["new", "Forms", "--no-restore"]));
+            var controls = Path.Combine(root, "Forms", "Components", "Controls");
+            var input = await File.ReadAllTextAsync(Path.Combine(controls, "Input", "AnvilInput.razor"));
+            var field = await File.ReadAllTextAsync(Path.Combine(controls, "Field", "AnvilField.razor"));
+
+            Assert.Contains("<input", input);
+            Assert.Contains("Name", input);
+            Assert.Contains("Value", input);
+            Assert.Contains("ValueChanged", input);
+            Assert.Contains("@attributes", input);
+            Assert.Contains("Label", field);
+            Assert.Contains("Description", field);
+            Assert.Contains("Error", field);
+        }
+        finally
+        {
+            Directory.SetCurrentDirectory(original);
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task New_generates_semantic_disclosure_and_overlay_controls()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "anvil-overlay-controls", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        var original = Directory.GetCurrentDirectory();
+
+        try
+        {
+            Directory.SetCurrentDirectory(root);
+            Assert.Equal(0, await AnvilCli.RunAsync(["new", "Overlays", "--no-restore"]));
+            var controls = Path.Combine(root, "Overlays", "Components", "Controls");
+            var accordion = await File.ReadAllTextAsync(Path.Combine(controls, "Accordion", "AnvilAccordion.razor"));
+            var dialog = await File.ReadAllTextAsync(Path.Combine(controls, "Dialog", "AnvilDialog.razor"));
+
+            Assert.Contains("<details", accordion);
+            Assert.Contains("<summary", accordion);
+            Assert.Contains("aria-expanded", dialog);
+            Assert.Contains("data-anvil-control", dialog);
+            Assert.Contains("TriggerId", dialog);
+            Assert.Contains("ChildContent", dialog);
+        }
+        finally
+        {
+            Directory.SetCurrentDirectory(original);
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task New_generates_advanced_controls_with_no_script_fallbacks()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "anvil-advanced-controls", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        var original = Directory.GetCurrentDirectory();
+
+        try
+        {
+            Directory.SetCurrentDirectory(root);
+            Assert.Equal(0, await AnvilCli.RunAsync(["new", "Advanced", "--no-restore"]));
+            var app = Path.Combine(root, "Advanced");
+            var chart = await File.ReadAllTextAsync(Path.Combine(app, "Components", "Controls", "Chart", "AnvilChart.razor"));
+            var calendar = await File.ReadAllTextAsync(Path.Combine(app, "Components", "Controls", "Calendar", "AnvilCalendar.razor"));
+            var table = await File.ReadAllTextAsync(Path.Combine(app, "Components", "Controls", "Table", "AnvilTable.razor"));
+            var appFile = await File.ReadAllTextAsync(Path.Combine(app, "Components", "App.razor"));
+            var script = await File.ReadAllTextAsync(Path.Combine(app, "wwwroot", "anvil-controls.js"));
+
+            Assert.Contains("<svg", chart);
+            Assert.Contains("aria-label", chart);
+            Assert.Contains("type=\"date\"", calendar);
+            Assert.Contains("<table", table);
+            Assert.Contains("anvil-controls.js", appFile);
+            Assert.Contains("data-anvil-control", script);
+            Assert.DoesNotContain("fetch(", script);
+        }
+        finally
+        {
+            Directory.SetCurrentDirectory(original);
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task New_generates_a_public_showcase_for_every_control()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "anvil-control-showcase", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        var original = Directory.GetCurrentDirectory();
+
+        try
+        {
+            Directory.SetCurrentDirectory(root);
+            Assert.Equal(0, await AnvilCli.RunAsync(["new", "Showcase", "--no-restore"]));
+            var page = await File.ReadAllTextAsync(Path.Combine(root, "Showcase", "Components", "Pages", "Public", "Components.razor"));
+
+            Assert.Contains("@page \"/components\"", page);
+            Assert.Contains("AllowAnonymous", page);
+            foreach (var control in AnvilCli.ControlCatalog)
+            {
+                Assert.Contains($"<Anvil{control.Name}", page);
+                Assert.Contains(control.ShowcaseLabel, page);
+            }
         }
         finally
         {

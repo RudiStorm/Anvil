@@ -60,24 +60,37 @@ To create the framework packages used by package-mode generated applications:
 .\Publish-AnvilPackages.ps1
 ```
 
-The package output contains `Anvil`, `Anvil.Razor`, and `Anvil.Cli` packages at
+The package output contains `Raukeld.Anvil`, `Raukeld.Anvil.Razor`, and
+`Raukeld.Anvil.Cli` packages at
 the aligned project version. Publish the first two to the configured NuGet feed
 before using `anvil new` outside a source checkout.
 
-For a local package feed, pass it during generation:
+For a local package feed outside the source checkout, pass it during generation:
 
 ```powershell
 anvil new Portal --package-source D:\dev-tools-path\packages
 ```
+
+The installed CLI automatically uses a `packages` directory beside its executable
+when one is present.
 
 `anvil dev` delegates to `dotnet watch` and forwards additional arguments to
 the application. Generated projects use source references when created from
 this repository and package references when created elsewhere.
 
 `anvil new` defaults to the Identity profile and initializes the EF tool,
-initial migration, generated manifests, and first build automatically. Use
-`--profile default` for the minimal profile or `--no-restore` for offline file
-generation.
+creates and applies the initial migration, generates a polished landing page,
+login/register pages, a protected dashboard, manifests, and the first build
+automatically. Generated pages are organized under `Components/Pages/Public`,
+`Components/Pages/Auth`, and `Components/Pages/App`, with explicit
+`AllowAnonymous` or `Authorize` metadata. Use `--profile default` for the
+minimal profile or `--no-restore` for offline file generation.
+
+New applications also include an editable shadcn-style Razor catalog under
+`Components/Controls` and a public `/components` showcase. Controls are local
+source files: customize or delete them without changing Anvil. They use
+semantic HTML and CSS tokens, with a small optional `wwwroot/anvil-controls.js`
+enhancement layer; no React, Tailwind, npm, or Node build is required.
 
 ## Request context
 

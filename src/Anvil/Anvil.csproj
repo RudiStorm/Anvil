@@ -5,8 +5,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>Anvil</RootNamespace>
-    <PackageId>Anvil</PackageId>
-    <Version>0.1.0</Version>
+    <PackageId>Raukeld.Anvil</PackageId>
+    <Version>0.1.2</Version>
     <Authors>Anvil contributors</Authors>
     <Description>Server-rendered .NET application framework built on ASP.NET Core and Razor.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>

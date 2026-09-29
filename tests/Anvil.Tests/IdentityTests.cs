@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Primitives;
 
 namespace Anvil.Tests;
 
@@ -44,6 +45,26 @@ public sealed class IdentityTests
         await app.StartAsync();
         await app.StopAsync();
         await app.DisposeAsync();
+    }
+
+    [Fact]
+    public void Identity_form_binding_maps_login_and_registration_fields()
+    {
+        var login = AnvilIdentityFormBinding.Login(new FormCollection(new Dictionary<string, StringValues>
+        {
+            ["UserName"] = "demo",
+            ["Password"] = "secret",
+            ["RememberMe"] = "true"
+        }));
+        var register = AnvilIdentityFormBinding.Register(new FormCollection(new Dictionary<string, StringValues>
+        {
+            ["UserName"] = "demo",
+            ["Email"] = "demo@example.test",
+            ["Password"] = "secret"
+        }));
+
+        Assert.Equal(new AnvilLoginRequest("demo", "secret", true), login);
+        Assert.Equal(new AnvilRegisterRequest("demo", "demo@example.test", "secret"), register);
     }
 
     [Fact]

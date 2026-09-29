@@ -1,6 +1,6 @@
 # Upgrading Anvil
 
-Anvil and Anvil.Razor should be upgraded together at the same version. Before
+Raukeld.Anvil and Raukeld.Anvil.Razor should be upgraded together at the same version. Before
 upgrading:
 
 1. Run the existing test suite and record the package versions.
