@@ -1,0 +1,36 @@
+@namespace Anvil.Razor
+@using Microsoft.AspNetCore.Components
+
+<ErrorBoundary @ref="boundary">
+    <ChildContent>
+        @ChildContent
+    </ChildContent>
+    <ErrorContent Context="_">
+        @if (ErrorContent is not null)
+        {
+            @ErrorContent
+        }
+        else
+        {
+            <div role="alert">@FallbackMessage</div>
+        }
+    </ErrorContent>
+</ErrorBoundary>
+
+@code {
+    private ErrorBoundary? boundary;
+
+    [Parameter, EditorRequired]
+    public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public RenderFragment<Exception>? ErrorContent { get; set; }
+
+    [Parameter]
+    public string FallbackMessage { get; set; } = "Something went wrong.";
+
+    public void Recover()
+    {
+        boundary?.Recover();
+    }
+}

@@ -1,0 +1,8 @@
+<div class="anvil-theme anvil-theme-@Theme.ToLowerInvariant()">
+    @ChildContent
+</div>
+
+@code {
+    [Parameter] public string Theme { get; set; } = "system";
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

@@ -1,0 +1,11 @@
+@page "/operations"
+@inject RequestContext Request
+
+<PageTitle>Operations | Anvil</PageTitle>
+<div class="page-heading"><div><p class="eyebrow">Production foundations</p><h1>Operations</h1><p class="lede">Durable jobs, audit, tenant boundaries, storage, transfers, webhooks, and readiness are application-owned services.</p></div><a class="button button-secondary" href="/health/ready">Readiness</a></div>
+<div class="showcase-grid">
+    <section class="panel showcase-card"><span class="showcase-number">AUDIT</span><h2>Audit and compliance</h2><p>Record actor, tenant, resource, changed fields, trace, and correlation identifiers. Privacy workflows support export, deletion, anonymization, retention, and legal holds.</p><a class="text-link" href="@Request.Link("/framework")">See framework contracts -&gt;</a></section>
+    <section class="panel showcase-card"><span class="showcase-number">JOBS</span><h2>Durable work</h2><p>Jobs support availability times, retry backoff, leases, dead letters, replay, history, schedules, tenant propagation, and transactional outbox boundaries.</p><a class="text-link" href="/anvil.contract.json">Inspect endpoint contract -&gt;</a></section>
+    <section class="panel showcase-card"><span class="showcase-number">DATA</span><h2>Data boundaries</h2><p>Storage, import/export, notifications, cache keys, and webhooks use owner or tenant boundaries and explicit readiness labels.</p><a class="text-link" href="/api/health">Health endpoint -&gt;</a></section>
+    <section class="panel showcase-card"><span class="showcase-number">SECURITY</span><h2>Production guardrails</h2><p>HTTPS, HSTS, CSP, trusted proxy configuration, persistent Data Protection keys, health checks, and structured correlation IDs are configured explicitly.</p><a class="text-link" href="/openapi.json">OpenAPI document -&gt;</a></section>
+</div>

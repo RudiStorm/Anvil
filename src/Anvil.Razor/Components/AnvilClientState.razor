@@ -1,0 +1,17 @@
+@using System.Text.Json
+@using System.Text.Encodings.Web
+
+<script type="application/json" data-anvil-state="@Name">@SerializedValue</script>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Name { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public AnvilPublicState<object?> State { get; set; } = new(null);
+
+    private string SerializedValue => JsonSerializer.Serialize(State.Value, new JsonSerializerOptions
+    {
+        Encoder = JavaScriptEncoder.Default
+    });
+}

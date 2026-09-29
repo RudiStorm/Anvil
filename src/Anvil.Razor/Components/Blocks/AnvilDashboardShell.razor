@@ -1,0 +1,14 @@
+<div class="anvil-dashboard">
+    <aside>
+        <a href="@HomeUrl">@Brand</a>
+        @Nav
+    </aside>
+    <main>@ChildContent</main>
+</div>
+
+@code {
+    [Parameter] public string Brand { get; set; } = "Dashboard";
+    [Parameter] public string HomeUrl { get; set; } = "/";
+    [Parameter] public RenderFragment? Nav { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

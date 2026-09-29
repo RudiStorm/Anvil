@@ -1,0 +1,7 @@
+@page "/settings"
+
+<PageTitle>Settings | Anvil</PageTitle>
+<div class="page-heading"><div><p class="eyebrow">Workspace preferences</p><h1>Settings</h1><p class="lede">Configure how your team works in Anvil.</p></div></div>
+@inject WorkspaceSettings Workspace
+
+<section class="panel settings-panel"><h2>Workspace details</h2><p class="panel-copy">These settings are saved through a typed, server-rendered form.</p><form method="post" action="/api/settings" hx-post="/api/settings" hx-target="#settings-status" hx-swap="innerHTML" class="settings-form"><AntiforgeryToken /><label>Workspace name<input name="Name" value="@Workspace.Name" required /></label><label>Timezone<select name="Timezone"><option selected="@(Workspace.Timezone.StartsWith("Pacific", StringComparison.Ordinal))">Pacific Time (UTC-08:00)</option><option selected="@(Workspace.Timezone.StartsWith("Eastern", StringComparison.Ordinal))">Eastern Time (UTC-05:00)</option></select></label><label class="checkbox-label"><input type="checkbox" name="WeeklySummaries" value="true" checked="@Workspace.WeeklySummaries" /> Send weekly performance summaries</label><button class="button button-primary" type="submit">Save changes</button><span id="settings-status" aria-live="polite"></span></form></section>

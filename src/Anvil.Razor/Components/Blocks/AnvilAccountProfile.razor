@@ -1,0 +1,15 @@
+<section>
+    <h1>@Heading</h1>
+    <dl>
+        <dt>Email</dt>
+        <dd>@Email</dd>
+        <dt>Display name</dt>
+        <dd>@DisplayName</dd>
+    </dl>
+</section>
+
+@code {
+    [Parameter] public string Heading { get; set; } = "Your account";
+    [Parameter] public string Email { get; set; } = string.Empty;
+    [Parameter] public string DisplayName { get; set; } = string.Empty;
+}

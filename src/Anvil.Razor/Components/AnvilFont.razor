@@ -1,0 +1,10 @@
+@if (!string.IsNullOrWhiteSpace(Href))
+{
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="stylesheet" href="@Href" />
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public string Href { get; set; } = string.Empty;
+}

@@ -1,0 +1,24 @@
+@page "/products"
+@inject ProductCatalog Catalog
+@inject RequestContext Request
+
+<PageTitle>Inventory | Anvil</PageTitle>
+
+<div class="page-heading"><div><p class="eyebrow">Catalog management</p><h1>Inventory</h1><p class="lede">Keep your product catalog accurate and ready to sell.</p></div><button class="button button-primary" type="button" data-anvil-toggle="#add-product-modal" aria-expanded="false">+ Add product</button></div>
+<div id="add-product-modal" class="modal-backdrop" hidden>
+    <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="add-product-title">
+        <div class="modal-header"><div><p class="eyebrow">Catalog management</p><h2 id="add-product-title">Add product</h2></div><button class="modal-close" type="button" data-anvil-toggle="#add-product-modal" aria-label="Close dialog">&times;</button></div>
+        <p class="modal-copy">Create a new item for your inventory.</p>
+        <form method="post" action="/api/products" hx-post="/api/products" hx-target="#inventory-results" hx-swap="innerHTML" data-anvil-partial-form data-anvil-target="#inventory-results" data-anvil-close-modal="#add-product-modal" class="settings-form inline-create-form">
+            <AntiforgeryToken />
+            <label>Product name<input name="Name" placeholder="e.g. House blend" required minlength="2" /></label>
+            <label>Description<input name="Description" placeholder="Short product description" required minlength="2" /></label>
+            <div class="modal-actions"><button class="button button-secondary" type="button" data-anvil-toggle="#add-product-modal">Cancel</button><button class="button button-primary" type="submit">Add product</button></div>
+        </form>
+    </section>
+</div>
+<section class="panel inventory-panel"><div class="table-toolbar"><form method="get" action="/api/inventory/table" class="search-form" data-anvil-partial-form data-anvil-target="#inventory-results" hx-get="/api/inventory/table" hx-target="#inventory-results" hx-swap="innerHTML"><label for="inventory-search">Search inventory</label><input id="inventory-search" name="search" value="@search" placeholder="Search by product name" /><button class="button button-secondary" type="submit">Search</button></form><span class="muted">Search updates only the table rows</span></div><div class="table-wrap"><table><thead><tr><th>Product</th><th>Status</th><th>Category</th><th>Price</th><th>Stock</th><th></th></tr></thead><tbody id="inventory-results"><InventoryRows Products="@Catalog.Search(search).ToArray()" /></tbody></table></div></section>
+
+@code {
+    [SupplyParameterFromQuery] private string? search { get; set; }
+}

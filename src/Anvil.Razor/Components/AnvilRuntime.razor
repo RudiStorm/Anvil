@@ -1,0 +1,10 @@
+<script src="@HtmxSource" integrity="@HtmxIntegrity" crossorigin="anonymous"></script>
+<script src="_content/Anvil.Razor/anvil.js"></script>
+
+@code {
+    [Parameter]
+    public string HtmxSource { get; set; } = "_content/Anvil.Razor/htmx-4.0.0.min.js";
+
+    [Parameter]
+    public string? HtmxIntegrity { get; set; }
+}

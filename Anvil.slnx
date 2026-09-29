@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/samples/">
+    <Project Path="samples/Anvil.Sample/Anvil.Sample.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/Anvil.Cli/Anvil.Cli.csproj" />
+    <Project Path="src/Anvil.Razor/Anvil.Razor.csproj" />
+    <Project Path="src/Anvil/Anvil.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Anvil.Tests/Anvil.Tests.csproj" />
+  </Folder>
+</Solution>

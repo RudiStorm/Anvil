@@ -1,0 +1,9 @@
+@page "/identity"
+@inject RequestContext Request
+
+<PageTitle>Identity | Anvil</PageTitle>
+<div class="page-heading"><div><p class="eyebrow">Standard ASP.NET Core Identity</p><h1>Identity lab</h1><p class="lede">Anvil keeps authentication in ordinary Identity services and exposes server endpoints for Razor forms.</p></div></div>
+<div class="dashboard-grid">
+    <section class="panel showcase-card"><h2>Register</h2><p class="panel-copy">Creates a user through `UserManager` and applies the configured registration policy.</p><form method="post" action="/api/account/register" class="settings-form"><AntiforgeryToken /><label>Username<input name="UserName" value="demo-user" required /></label><label>Email<input name="Email" type="email" value="demo@anvil.test" required /></label><label>Password<input name="Password" type="password" value="Demo-password-123!" required /></label><button class="button button-primary" type="submit">Register</button></form></section>
+    <section class="panel showcase-card"><h2>Login and MFA</h2><p class="panel-copy">Cookie authentication, lockout, MFA challenge, recovery codes, and antiforgery are all standard endpoint behavior.</p><div class="showcase-links"><a href="/api/account/me">Current user <span>-&gt;</span></a><a href="/api/account/mfa/setup">MFA setup (protected) <span>-&gt;</span></a><a href="/api/account/devices">Device sessions (protected) <span>-&gt;</span></a></div></section>
+</div>

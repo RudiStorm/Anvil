@@ -1,0 +1,21 @@
+@page "/framework"
+@inject RequestContext Request
+
+<PageTitle>Framework Lab | Anvil</PageTitle>
+<AnvilClientState Name="sample-framework-state" State="@PublicState" />
+
+<div class="page-heading"><div><p class="eyebrow">Anvil reference application</p><h1>Framework lab</h1><p class="lede">A working tour of server rendering, browser behavior, streaming, and typed endpoints.</p></div><a class="button button-secondary" href="@Request.Link("/openapi.json")">View OpenAPI</a></div>
+
+<div class="showcase-grid">
+    <section class="panel showcase-card"><span class="showcase-number">01</span><h2>Server-rendered components</h2><p>Razor pages, layouts, route parameters, query binding, and safe HTML all render on the server.</p><div class="showcase-links"><a href="@Request.Link("/products")">Query binding <span>-&gt;</span></a><a href="@Request.Link("/products/{id:int}", new { id = 1 })">Route parameters <span>-&gt;</span></a><a href="@Request.Link("/errors")">Error boundaries <span>-&gt;</span></a></div></section>
+    <section class="panel showcase-card"><span class="showcase-number">02</span><h2>Browser runtime</h2><p>Interactions stay explicit and lightweight. Nothing here translates C# into JavaScript.</p><div class="runtime-demo"><button type="button" data-anvil-toggle="#lab-details" aria-expanded="false">Toggle local UI state</button><span id="lab-details" hidden class="demo-note">This element changed in the browser only.</span><input data-anvil-signal="lab-query" value="Anvil" aria-label="Signal input" /><output data-anvil-signal-bind="lab-query">Anvil</output></div></section>
+    <section class="panel showcase-card"><span class="showcase-number">03</span><h2>Fragment updates</h2><p>Partial HTML replaces a target region while the rest of the dashboard stays in place.</p><div class="shard-demo"><AnvilShard Id="lab-shard" Url="/api/showcase/shard" LoadingText="Loading server shard..." SignalName="lab-query"><span>Waiting for the server shard...</span></AnvilShard></div></section>
+    <section class="panel showcase-card"><span class="showcase-number">04</span><h2>Streaming and events</h2><p>Delayed content, live regions, SSE events, cancellation, and response flushing are all request-aware.</p><div class="showcase-links"><a href="@Request.Link("/streaming")">Streaming page <span>-&gt;</span></a><a href="@Request.Link("/api/events")">SSE stream <span>-&gt;</span></a><a href="@Request.Link("/sitemap.xml")">XML sitemap <span>-&gt;</span></a></div></section>
+    <section class="panel showcase-card"><span class="showcase-number">05</span><h2>Safe content</h2><p>Markdown is escaped before rendering and public state is explicitly marked as browser-visible.</p><AnvilMarkdown Content="@Markdown" /><small class="code-note">Inspect the page source for the public state script.</small></section>
+    <section class="panel showcase-card"><span class="showcase-number">06</span><h2>Typed server APIs</h2><p>Validation, JSON binding, procedures, named routes, and generated API metadata use ordinary ASP.NET Core endpoints.</p><div class="showcase-links"><a href="@Request.Link("/api/health")">Health endpoint <span>-&gt;</span></a><a href="@Request.Link("/api/procedure")">Procedure endpoint <span>-&gt;</span></a><a href="@Request.Link("/openapi.json")">OpenAPI document <span>-&gt;</span></a></div></section>
+</div>
+
+@code {
+    private AnvilPublicState<object?> PublicState => new(new { environment = "sample", visibility = "public" });
+    private string Markdown => "**Server rendered.** This Markdown is escaped and rendered by Anvil.";
+}

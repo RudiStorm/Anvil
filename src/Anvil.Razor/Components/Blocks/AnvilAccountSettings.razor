@@ -1,0 +1,12 @@
+<section>
+    <h1>Account settings</h1>
+    <form method="post" action="@Action">
+        <label>Display name <input name="displayName" value="@DisplayName" /></label>
+        <button type="submit">Save changes</button>
+    </form>
+</section>
+
+@code {
+    [Parameter] public string Action { get; set; } = "/account/settings";
+    [Parameter] public string DisplayName { get; set; } = string.Empty;
+}

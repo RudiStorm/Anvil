@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Restore
+        run: dotnet restore Anvil.slnx
+      - name: Build
+        run: dotnet build Anvil.slnx --no-restore
+      - name: Test
+        run: dotnet test Anvil.slnx --no-build --no-restore
+      - name: CLI check
+        run: dotnet run --project src/Anvil.Cli --no-build -- check Anvil.slnx
+      - name: CLI template smoke test
+        shell: bash
+        run: |
+          output=$(mktemp -d)
+          dotnet run --project src/Anvil.Cli --no-build -- new SmokeApp --profile identity --output "$output"
+          dotnet build "$output/SmokeApp/SmokeApp.csproj"
+          grep -q 'AddAnvilProduction' "$output/SmokeApp/Program.cs"
+          grep -q 'MapAnvilHealthChecks' "$output/SmokeApp/Program.cs"
+      - name: Package validation
+        run: |
+          dotnet pack src/Anvil/Anvil.csproj --no-build --no-restore --output ./artifacts
+          dotnet pack src/Anvil.Razor/Anvil.Razor.csproj --no-build --no-restore --output ./artifacts
+          unzip -l artifacts/Anvil.Razor.0.1.0.nupkg | grep -q 'htmx-4.0.0.min.js'
+          unzip -l artifacts/Anvil.0.1.0.nupkg | grep -q 'PACKAGE-NOTICE.md'
+      - name: Vulnerability audit
+        run: dotnet list Anvil.slnx package --vulnerable --include-transitive

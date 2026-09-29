@@ -1,0 +1,28 @@
+@inherits LayoutComponentBase
+@inject RequestContext Request
+
+<div class="app-frame">
+    <aside class="sidebar">
+        <a class="brand" href="@Request.Link("/")"><span class="brand-mark">A</span><span>Anvil<span class="brand-dot">.</span></span></a>
+        <p class="eyebrow sidebar-label">Workspace</p>
+        <nav class="side-nav" aria-label="Primary navigation">
+            <a class="@(Request.IsCurrent("/overview") ? "active" : null)" href="@Request.Link("/overview")"><span>◈</span> Overview</a>
+            <a class="@(Request.IsCurrent("/products") ? "active" : null)" href="@Request.Link("/products")"><span>▣</span> Inventory</a>
+            <a class="@(Request.IsCurrent("/team") ? "active" : null)" href="@Request.Link("/team")"><span>♧</span> Team</a>
+            <a class="@(Request.IsCurrent("/settings") ? "active" : null)" href="@Request.Link("/settings")"><span>⚙</span> Settings</a>
+            <a class="@(Request.IsCurrent("/integrations") ? "active" : null)" href="@Request.Link("/integrations")"><span>✦</span> Integrations</a>
+            <a class="@(Request.IsCurrent("/framework") ? "active" : null)" href="@Request.Link("/framework")"><span>✦</span> Framework lab</a>
+            <a class="@(Request.IsCurrent("/identity") ? "active" : null)" href="@Request.Link("/identity")"><span>◎</span> Identity</a>
+            <a class="@(Request.IsCurrent("/operations") ? "active" : null)" href="@Request.Link("/operations")"><span>◇</span> Operations</a>
+            <a class="@(Request.IsCurrent("/") ? "active" : null)" href="@Request.Link("/")"><span>▤</span> Documentation</a>
+        </nav>
+        <div class="sidebar-spacer"></div>
+        <div class="sidebar-status"><span class="status-dot"></span> All systems operational</div>
+        <div class="user-card"><span class="avatar avatar-small">JD</span><span><strong>Jordan Davis</strong><small>Administrator</small></span><span class="user-more">•••</span></div>
+    </aside>
+    <div class="content-frame">
+        <header class="topbar"><button class="mobile-menu" type="button" aria-label="Open navigation">☰</button><div class="breadcrumbs"><span>Workspace</span><span>/</span><strong>Operations</strong></div><div class="topbar-actions"><button class="icon-button" type="button" aria-label="Search">⌕</button><button class="icon-button notification" type="button" aria-label="Notifications">♢<i></i></button></div></header>
+        <main class="page-content">@Body</main>
+        <footer class="page-footer">Anvil Admin <span>•</span> Server-rendered with Razor</footer>
+    </div>
+</div>

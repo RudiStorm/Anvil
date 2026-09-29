@@ -1,0 +1,18 @@
+@inject RequestContext Request
+
+@foreach (var product in Products)
+{
+    <tr>
+        <td><a class="product-cell" href="@Request.Link("/products/{id:int}", new { id = product.Id })"><span class="product-thumb">@(product.Id == 1 ? "ES" : product.Id == 2 ? "PO" : "CB")</span><span><strong>@product.Name</strong><small>@product.Description</small></span></a></td>
+        <td><span class="pill pill-green">Active</span></td>
+        <td>Coffee</td>
+        <td>$@(product.Id == 1 ? "18.00" : product.Id == 2 ? "24.00" : "21.00")</td>
+        <td><strong>@(product.Id == 1 ? "84" : product.Id == 2 ? "32" : "118")</strong> units</td>
+        <td><a class="row-link" href="@Request.Link("/products/{id:int}", new { id = product.Id })">View</a> <button class="row-link" type="button" hx-delete="/api/products/@product.Id" hx-target="closest tr" hx-swap="outerHTML" hx-confirm="Remove this product?">Remove</button></td>
+    </tr>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public IEnumerable<Product> Products { get; set; } = [];
+}

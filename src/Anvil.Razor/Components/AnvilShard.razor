@@ -1,0 +1,21 @@
+<section id="@Id" data-anvil-shard="@Url" data-anvil-shard-target="@Id" data-anvil-shard-signal="@SignalName" aria-live="polite">
+    <div data-anvil-shard-loading> @LoadingText </div>
+    @ChildContent
+</section>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Id { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public string Url { get; set; } = string.Empty;
+
+    [Parameter]
+    public string LoadingText { get; set; } = "Loading...";
+
+    [Parameter]
+    public string? SignalName { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+}

@@ -1,0 +1,19 @@
+<section class="anvil-crud-page">
+    <header>
+        <div>
+            <h1>@Title</h1>
+            @Description
+        </div>
+        @Actions
+    </header>
+    <div class="anvil-crud-content">
+        @ChildContent
+    </div>
+</section>
+
+@code {
+    [Parameter] public string Title { get; set; } = "Items";
+    [Parameter] public RenderFragment? Description { get; set; }
+    [Parameter] public RenderFragment? Actions { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

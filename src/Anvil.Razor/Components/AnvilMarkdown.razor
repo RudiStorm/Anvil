@@ -1,0 +1,10 @@
+@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Rendering
+@using Microsoft.AspNetCore.Components.Web
+
+@((MarkupString)Anvil.AnvilMarkdownRenderer.Render(Content))
+
+@code {
+    [Parameter]
+    public string Content { get; set; } = string.Empty;
+}

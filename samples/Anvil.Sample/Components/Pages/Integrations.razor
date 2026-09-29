@@ -1,0 +1,40 @@
+@page "/integrations"
+
+<PageTitle>Integrations | Anvil</PageTitle>
+<div class="page-heading"><div><p class="eyebrow">Full-stack examples</p><h1>Integrations</h1><p class="lede">Authentication, uploads, and email use ordinary server endpoints and DI.</p></div></div>
+
+<div class="dashboard-grid">
+    <section class="panel showcase-card">
+        <h2>Session sign-in</h2>
+        <p class="panel-copy">Starts a secure Anvil session and redirects back to this page.</p>
+        <form method="post" action="/api/account/sign-in" class="settings-form">
+            <AntiforgeryToken />
+            <label>Email<input name="Email" type="email" value="jordan@anvil.test" required /></label>
+            <label>Password<input name="Password" type="password" value="demo-password" required /></label>
+            <button class="button button-primary" type="submit">Sign in</button>
+        </form>
+        <form method="post" action="/api/account/sign-out" class="settings-form">
+            <AntiforgeryToken />
+            <button class="button button-secondary" type="submit">Sign out</button>
+        </form>
+    </section>
+    <section class="panel showcase-card">
+        <h2>Multipart upload</h2>
+        <p class="panel-copy">Files are parsed through the request context with size limits.</p>
+        <form method="post" action="/api/uploads" enctype="multipart/form-data" class="settings-form">
+            <AntiforgeryToken />
+            <label>Document<input name="document" type="file" required /></label>
+            <button class="button button-secondary" type="submit">Upload document</button>
+        </form>
+    </section>
+    <section class="panel showcase-card">
+        <h2>Email delivery</h2>
+        <p class="panel-copy">The sample uses Anvil's in-memory mail transport by default.</p>
+        <form method="post" action="/api/contact" class="settings-form">
+            <AntiforgeryToken />
+            <label>Recipient<input name="To" type="email" value="team@anvil.test" required /></label>
+            <label>Message<textarea name="Message" required>Welcome to Anvil.</textarea></label>
+            <button class="button button-secondary" type="submit">Send email</button>
+        </form>
+    </section>
+</div>

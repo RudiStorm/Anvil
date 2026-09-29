@@ -1,0 +1,10 @@
+<img src="@Src" alt="@Alt" width="@Width" height="@Height" loading="lazy" decoding="async" srcset="@SrcSet" sizes="@Sizes" />
+
+@code {
+    [Parameter, EditorRequired] public string Src { get; set; } = string.Empty;
+    [Parameter] public string Alt { get; set; } = string.Empty;
+    [Parameter] public int? Width { get; set; }
+    [Parameter] public int? Height { get; set; }
+    [Parameter] public string? SrcSet { get; set; }
+    [Parameter] public string? Sizes { get; set; }
+}

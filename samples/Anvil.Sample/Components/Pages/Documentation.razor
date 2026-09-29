@@ -1,0 +1,159 @@
+@page "/"
+@inject RequestContext Request
+
+<PageTitle>Documentation | Anvil</PageTitle>
+
+<div class="docs-layout">
+    <aside class="docs-nav" aria-label="Documentation navigation">
+        <div class="docs-nav-title">Anvil docs</div>
+        <a href="#getting-started">Getting started</a>
+        <a href="#scaffolding">Scaffolding</a>
+        <a href="#mental-model">Mental model</a>
+        <a href="#pages">Pages and layouts</a>
+        <a href="#routing">Routing and links</a>
+        <a href="#api-endpoints">API endpoints</a>
+        <a href="#forms">Forms and validation</a>
+        <a href="#fragments">Fragments and shards</a>
+        <a href="#browser">Browser runtime</a>
+        <a href="#identity">Authentication</a>
+        <a href="#persistence">Persistence and tenancy</a>
+        <a href="#operations">Jobs and operations</a>
+        <a href="#production">Production</a>
+    </aside>
+
+    <article class="docs-article">
+        <header class="docs-hero">
+            <p class="eyebrow">Anvil 1.0 guide</p>
+            <h1>Build server-rendered apps with C#</h1>
+            <p>Everything you need to build a production-shaped Razor application without a separate frontend project.</p>
+            <div class="docs-hero-links"><a class="button button-primary" href="#getting-started">Start building</a><a class="button button-secondary" href="https://github.com/RudiStorm/dotisan-code">Architecture background</a></div>
+        </header>
+
+        <section id="getting-started" class="docs-section"><span class="docs-kicker">01 / Basics</span><h2>Getting started</h2><p>Create an application, run it, and open the server-rendered home page.</p><pre><code>dotnet tool install --global Anvil.Cli
+anvil new Portal
+cd Portal
+anvil dev</code></pre><p>Anvil applications are ordinary ASP.NET Core projects. The generated entry point is intentionally small:</p><pre><code>var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddAnvil();
+
+var app = builder.Build();
+app.UseStaticFiles();
+app.UseAnvil();
+app.MapAnvil&lt;Components.App&gt;();
+app.Run();</code></pre><div class="docs-note"><strong>Convention:</strong> start with Razor and normal C#. Add Identity, EF Core, jobs, or integrations only when the application needs them.</div></section>
+
+        <section id="scaffolding" class="docs-section"><span class="docs-kicker">02 / CLI</span><h2>Scaffold application bases</h2><p>Use the CLI to create editable application-owned endpoint, page, shard, resource, and CRUD source. The generated files are ordinary C# and Razor and remain yours to modify.</p><pre><code>anvil make endpoint Health
+anvil make:page Reports
+anvil make:shard Revenue
+
+# For a resource and Razor CRUD pages:
+anvil make resource Customer
+anvil make crud Customer
+
+# Refresh and verify generated route/contract metadata:
+anvil generate
+anvil generate --check</code></pre><p>`make endpoint` creates an endpoint scaffold under `Endpoints`. `make:page` creates a routed Razor page under `Components/Pages`. `make:shard` creates a targetable Razor component under `Components/Shards` with the Anvil browser-runtime attributes. `make crud` creates the model, endpoint boundary, and editable Razor pages without introducing a JavaScript frontend.</p></section>
+
+        <section id="mental-model" class="docs-section"><span class="docs-kicker">03 / Foundation</span><h2>The Anvil mental model</h2><p>Anvil has three layers:</p><div class="docs-cards"><div><strong>Razor pages</strong><span>Render the document and own the user experience.</span></div><div><strong>Anvil endpoints</strong><span>Bind, validate, authorize, and mutate application state.</span></div><div><strong>Browser runtime</strong><span>Enhances explicit targets without becoming a second application.</span></div></div><p>Server-side C# is the source of truth. The browser receives HTML first, then optionally requests fragments, shards, or explicit server procedures.</p></section>
+
+        <section id="pages" class="docs-section"><span class="docs-kicker">03 / UI</span><h2>Create a page</h2><p>Place a Razor component under `Components/Pages` and add the page directive. Parameters are bound from route values.</p><pre><code>@@page "/customers/{Id:int}"
+@@inject CustomerService Customers
+
+&lt;PageTitle&gt;Customer&lt;/PageTitle&gt;
+&lt;h1&gt;@@customer.Name&lt;/h1&gt;
+
+@@code {
+    [Parameter] public int Id { get; set; }
+    private Customer? customer;
+
+    protected override async Task OnParametersSetAsync()
+        =&gt; customer = await Customers.FindAsync(Id);
+}</code></pre><p>Use normal Razor layouts with `@@inherits LayoutComponentBase`, and render `@@Body` where page content belongs. Use `PageTitle` and `HeadContent` for document metadata.</p><h3>Components</h3><p>Reusable components accept parameters and child content like any Razor component:</p><pre><code>&lt;StatusBadge Tone="success"&gt;Active&lt;/StatusBadge&gt;</code></pre></section>
+
+        <section id="routing" class="docs-section"><span class="docs-kicker">04 / Navigation</span><h2>Routing and typed links</h2><p>Pages use Razor route conventions. Server endpoints use ASP.NET Core route patterns. Generate internal URLs instead of concatenating strings.</p><pre><code>public sealed record CustomerRoute(int Id);
+static readonly AnvilRoute&lt;CustomerRoute&gt; Customer =
+    new("/customers/{id:int}");
+
+var href = Customer.Link(new CustomerRoute(42));</code></pre><p>In Razor, inject `RequestContext` and use `Request.Link`, named routes, query values, fragments, and `Request.IsCurrent` for navigation state.</p><pre><code>@@inject RequestContext Request
+&lt;a href="@@Request.Link("/customers")"&gt;Customers&lt;/a&gt;
+&lt;a class="@@(Request.IsCurrent("/customers") ? "active" : null)" href="/customers"&gt;Customers&lt;/a&gt;</code></pre></section>
+
+        <section id="api-endpoints" class="docs-section"><span class="docs-kicker">05 / Backend</span><h2>Create an API endpoint</h2><p>Anvil wraps Minimal APIs with typed request models and server validation. The handler remains ordinary ASP.NET Core code.</p><pre><code>public sealed record CreateCustomerRequest(
+    [property: Required] string Name,
+    [property: EmailAddress] string Email);
+
+app.MapAnvilPost&lt;CreateCustomerRequest&gt;(
+    "/api/customers",
+    async (RequestContext context, CreateCustomerRequest request) =&gt;
+    {
+        var customer = await service.CreateAsync(request, context.RequestAborted);
+        return Results.Created($"/api/customers/{customer.Id}", customer);
+    },
+    name: "customers.create");</code></pre><p>Use `MapAnvilGet`, `MapAnvilPost`, `MapAnvilPut`, `MapAnvilPatch`, `MapAnvilDelete`, and `MapAnvilProcedure`. Invalid models produce standard validation problem details.</p><p>OpenAPI and the canonical contract are available through:</p><pre><code>app.MapAnvilOpenApi();
+app.MapAnvilManifest();</code></pre></section>
+
+        <section id="forms" class="docs-section"><span class="docs-kicker">06 / Input</span><h2>Forms and validation</h2><p>Use `MapAnvilFormPost&lt;TRequest&gt;` for URL-encoded forms. Antiforgery remains part of the normal mutation boundary.</p><pre><code>public sealed record UpdateSettings(
+    [property: Required] string Name,
+    string Timezone);
+
+app.MapAnvilFormPost&lt;UpdateSettings&gt;(
+    "/settings",
+    async (_, request) =&gt;
+    {
+        await settings.SaveAsync(request);
+        return Results.Redirect("/settings", permanent: false);
+    });</code></pre><p>In Razor, use `&lt;AntiforgeryToken /&gt;` inside server forms. For errors, render field messages and a validation summary from the response model.</p></section>
+
+        <section id="fragments" class="docs-section"><span class="docs-kicker">07 / HTML updates</span><h2>Fragments and shards</h2><p>Fragments render a Razor component without a document wrapper. They are ideal for tables, search results, modals, and inline forms.</p><pre><code>app.MapAnvilFragmentGet&lt;CustomerRows&gt;(
+    "/api/customers/rows",
+    context =&gt; new
+    {
+        Customers = service.Search(context.Request.Query["search"])
+    });</code></pre><p>Typed POST fragments bind and validate request models. Shards are server-rendered regions that can rerender when a browser signal changes:</p><pre><code>&lt;AnvilShard Id="results" Url="/api/customers/shard" SignalName="query"&gt;
+    &lt;p&gt;Loading customers...&lt;/p&gt;
+&lt;/AnvilShard&gt;</code></pre><p>Return only the changed HTML. The client never needs to receive the surrounding layout again.</p></section>
+
+        <section id="browser" class="docs-section"><span class="docs-kicker">08 / Enhancement</span><h2>Use the browser runtime</h2><p>Render `&lt;AnvilRuntime /&gt;` once in `App.razor`. Then opt into explicit behavior:</p><pre><code>&lt;button data-anvil-toggle="#details" aria-expanded="false"&gt;
+    Show details
+&lt;/button&gt;
+&lt;div id="details" hidden&gt;Extra information&lt;/div&gt;
+
+&lt;form method="get" action="/api/customers/rows"
+      data-anvil-partial-form
+      data-anvil-target="#customer-rows"&gt;
+    &lt;input name="search" /&gt;
+&lt;/form&gt;</code></pre><p>Normal links and forms remain functional without JavaScript. Partial forms replace only their target, preserve GET history, and fall back to navigation if the request fails.</p></section>
+
+        <section id="identity" class="docs-section"><span class="docs-kicker">09 / Security</span><h2>Authentication and authorization</h2><p>Use standard ASP.NET Core Identity when the application needs persisted users, roles, MFA, password reset, email confirmation, or session management.</p><pre><code>builder.Services.AddAnvilPersistence&lt;AppDbContext&gt;(
+    options =&gt; options.UseSqlite(connectionString));
+builder.Services.AddAnvilIdentity&lt;ApplicationUser, AppDbContext&gt;();
+
+app.UseAuthentication();
+app.UseAuthorization();
+app.MapAnvilIdentityEndpoints&lt;ApplicationUser&gt;();</code></pre><p>Use named policies and permission claims for application authorization. Keep domain authorization next to the mutation it protects.</p></section>
+
+        <section id="persistence" class="docs-section"><span class="docs-kicker">10 / Data</span><h2>Persistence and tenancy</h2><p>Anvil does not hide EF Core. Register the provider you need and author migrations with normal EF tooling.</p><pre><code>builder.Services.AddAnvilSqlitePersistence&lt;AppDbContext&gt;(
+    builder.Configuration,
+    (options, connection) =&gt; options.UseSqlite(connection));
+
+builder.Services.AddAnvilTenancy(options =&gt;
+{
+    options.Required = true;
+    options.AllowDevelopmentHeader = true;
+});
+app.UseAnvilTenancy();</code></pre><p>Tenant claims are authoritative in production. Add tenant query filters and ownership interceptors to application entities.</p></section>
+
+        <section id="operations" class="docs-section"><span class="docs-kicker">11 / Operations</span><h2>Jobs, audit, and integrations</h2><p>Register only the operational capabilities your application has configured:</p><pre><code>builder.Services.AddAnvilBackgroundJobs();
+builder.Services.AddAnvilScheduling();
+builder.Services.AddAnvilTransactionalOutbox&lt;AppDbContext&gt;();
+builder.Services.AddAnvilAudit&lt;AppDbContext&gt;();
+builder.Services.AddAnvilCompliance();
+builder.Services.AddAnvilNotifications();
+builder.Services.AddAnvilImportExport();
+builder.Services.AddAnvilWebhooks();
+builder.Services.AddAnvilCaching();</code></pre><p>Use `IAuditWriter` after successful mutations. Jobs need a durable provider in multi-instance production. Integrations expose readiness labels so example adapters are not mistaken for managed services.</p></section>
+
+        <section id="production" class="docs-section"><span class="docs-kicker">12 / Ship</span><h2>Production checklist</h2><div class="docs-checklist"><span>Secure cookies, antiforgery, HTTPS, HSTS, CSP</span><span>Persistent Data Protection keys</span><span>Reviewed EF Core migrations</span><span>Durable jobs and tenant propagation</span><span>Audit retention and privacy workflows</span><span>Health and readiness endpoints</span><span>Structured logs, correlation IDs, and OpenTelemetry</span><span>Backups, rollback, and secret management</span></div><pre><code>anvil migrate --dry-run
+anvil doctor --production
+anvil release --check</code></pre></section>
+    </article>
+</div>

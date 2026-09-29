@@ -1,0 +1,10 @@
+<section data-anvil-island="@Name" data-anvil-island-mode="@Mode" data-anvil-island-url="@Url">
+    @ChildContent
+</section>
+
+@code {
+    [Parameter, EditorRequired] public string Name { get; set; } = string.Empty;
+    [Parameter] public string Mode { get; set; } = "visible";
+    [Parameter] public string? Url { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

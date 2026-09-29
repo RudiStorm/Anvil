@@ -1,0 +1,20 @@
+@page "/products/{Id:int}"
+@inject ProductCatalog Catalog
+@inject RequestContext Request
+
+@if (product is null)
+{
+    <PageTitle>Product not found</PageTitle><div class="empty-state"><span class="empty-icon">?</span><h1>Product not found</h1><p>This inventory item does not exist.</p><a class="button button-secondary" href="@Request.Link("/products")">Back to inventory</a></div>
+}
+else
+{
+    <PageTitle>@product.Name | Anvil</PageTitle>
+    <div class="page-heading"><div><a class="back-link" href="@Request.Link("/products")">&lt; Back to inventory</a><h1>@product.Name</h1><p class="lede">Product details and stock information.</p></div><button class="button button-primary" type="button">Edit product</button></div>
+    <div class="detail-grid"><section class="panel detail-card"><div class="product-hero">@(product.Id == 1 ? "ES" : product.Id == 2 ? "PO" : "CB")</div><h2>@product.Name</h2><p>@product.Description</p><span class="pill pill-green">Active</span></section><section class="panel detail-card"><h2>Inventory details</h2><dl class="detail-list"><dt>SKU</dt><dd>ANV-00@(product.Id)</dd><dt>In stock</dt><dd>@(product.Id == 1 ? "84" : product.Id == 2 ? "32" : "118") units</dd><dt>Reorder point</dt><dd>25 units</dd><dt>Last updated</dt><dd>Today, 9:42 AM</dd></dl></section></div>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+    private Product? product;
+    protected override void OnParametersSet() => product = Catalog.Find(Id);
+}

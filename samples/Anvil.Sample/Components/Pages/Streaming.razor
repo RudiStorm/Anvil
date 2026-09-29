@@ -1,0 +1,29 @@
+@page "/streaming"
+@attribute [StreamRendering]
+
+<PageTitle>Streaming</PageTitle>
+
+<h1>Streaming</h1>
+
+@if (message is null)
+{
+    <p aria-live="polite">Loading slow content...</p>
+}
+else
+{
+    <p>@message</p>
+}
+
+<AnvilLiveRegion Id="clock" Url="/api/live" IntervalMs="1000">
+    <span>Waiting for a live update...</span>
+</AnvilLiveRegion>
+
+@code {
+    private string? message;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Task.Delay(50);
+        message = "Slow content arrived without a client-side application.";
+    }
+}

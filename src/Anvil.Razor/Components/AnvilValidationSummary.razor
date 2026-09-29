@@ -1,0 +1,22 @@
+@using Anvil
+
+@if (Errors is { Count: > 0 })
+{
+    <ul class="anvil-validation-summary" role="alert">
+        @foreach (var error in Errors)
+        {
+            <li>
+                @if (!string.IsNullOrEmpty(error.Field))
+                {
+                    <strong>@error.Field:</strong>
+                }
+                @error.Message
+            </li>
+        }
+    </ul>
+}
+
+@code {
+    [Parameter]
+    public IReadOnlyList<ValidationError>? Errors { get; set; }
+}

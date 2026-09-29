@@ -1,0 +1,31 @@
+@using Anvil.Razor
+@using Anvil.Razor.Components
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+    <link rel="stylesheet" href="app.css" />
+    <link rel="stylesheet" href="docs.css" />
+    <HeadOutlet />
+</head>
+<body hx-boost="true">
+<AnvilRuntime />
+<script type="application/json" data-anvil-state="sample-public-state">"This value is intentionally public."</script>
+<Router AppAssembly="@typeof(App).Assembly">
+    <Found Context="routeData">
+        <RouteView RouteData="@routeData" DefaultLayout="@typeof(Layout.MainLayout)" />
+        <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+    </Found>
+    <NotFound>
+        <LayoutView Layout="@typeof(Layout.MainLayout)">
+            <h1>Not found</h1>
+            <p>We could not find that page.</p>
+        </LayoutView>
+    </NotFound>
+</Router>
+<script src="_framework/blazor.web.js"></script>
+</body>
+</html>

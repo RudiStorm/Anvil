@@ -1,0 +1,17 @@
+# Build output
+bin/
+obj/
+
+# Local CLI publish output
+dev-tools-path/
+D:/dev-tools-path/
+
+# Local development state
+.vs/
+.idea/
+.anvil/
+.debug-generated/
+.fragment-nav-test/
+.htmx-bundle-test/
+.release-acceptance-*/
+.test-*/

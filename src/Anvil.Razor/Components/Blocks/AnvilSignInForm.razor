@@ -1,0 +1,20 @@
+<form method="post" action="@Action" data-anvil-validate>
+    <h1>@Title</h1>
+    <label>Email <input name="email" type="email" autocomplete="email" required /></label>
+    <label>Password <input name="password" type="password" autocomplete="current-password" required /></label>
+    <button type="submit">Sign in</button>
+    @if (OAuthProviders is not null)
+    {
+        @foreach (var provider in OAuthProviders)
+        {
+            <a href="@provider.Url">Continue with @provider.Name</a>
+        }
+    }
+</form>
+
+@code {
+    [Parameter] public string Action { get; set; } = "/account/sign-in";
+    [Parameter] public string Title { get; set; } = "Sign in";
+    [Parameter] public IReadOnlyList<OAuthProviderLink>? OAuthProviders { get; set; }
+    public sealed record OAuthProviderLink(string Name, string Url);
+}

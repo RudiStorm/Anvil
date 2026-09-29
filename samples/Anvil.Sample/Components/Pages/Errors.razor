@@ -1,0 +1,10 @@
+@page "/errors"
+@using Anvil.Razor
+
+<PageTitle>Error boundaries</PageTitle>
+
+<h1>Error boundaries</h1>
+
+<AnvilErrorBoundary FallbackMessage="The sample component failed safely.">
+    <p>This content is protected by a Anvil error boundary.</p>
+</AnvilErrorBoundary>
