@@ -95,7 +95,7 @@ select the persistence provider.
 ### Application Commands
 
 ```text
-anvil new <Name> [--profile default|identity] [--database <provider>]
+anvil new <Name> [--profile default|identity] [--database <provider>] [--package-source <directory>]
 anvil dev [--project <path>]
 anvil run [--project <path>]
 anvil build
@@ -107,11 +107,16 @@ anvil generate [--check]
 anvil migrate [--dry-run]
 anvil docker
 anvil release --check
+anvil --version
 ```
 
 `anvil doctor --production` is read-only and reports PASS, WARNING, or BLOCKING
 conditions for migrations, Identity, providers, mail, jobs, deployment files,
 health endpoints, observability, and production configuration.
+
+`anvil check` runs a real `dotnet build` for the current project, including
+restore when required. It is the fast generated-project compilation check;
+`anvil generate --check` verifies generated route and endpoint metadata.
 
 ### Scaffolding Commands
 
@@ -143,6 +148,19 @@ target ID, `data-anvil-shard` URL, loading marker, and child content.
 
 `anvil generate` creates deterministic route and endpoint manifests under
 `obj/anvil`. `anvil generate --check` fails when generated metadata is stale.
+
+When running from an installed CLI, the generated project uses `Anvil` and
+`Anvil.Razor` package references. Use `Publish-AnvilPackages.ps1` to create a
+local package feed, or publish both packages to your NuGet feed. For a local
+feed during development:
+
+```powershell
+.\Publish-AnvilPackages.ps1
+anvil new Portal --package-source D:\dev-tools-path\packages
+```
+
+The generated project receives a `NuGet.config` with the selected local feed
+and NuGet.org. Source-checkout generation continues to use project references.
 
 ### Persistence Commands
 

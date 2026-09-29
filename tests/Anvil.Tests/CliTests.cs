@@ -24,6 +24,12 @@ public sealed class CliTests
     }
 
     [Fact]
+    public async Task Version_returns_success()
+    {
+        Assert.Equal(0, await AnvilCli.RunAsync(["--version"]));
+    }
+
+    [Fact]
     public async Task Routes_and_assets_commands_inspect_the_current_application()
     {
         var root = Path.Combine(Path.GetTempPath(), "anvil-cli", Guid.NewGuid().ToString("N"));
@@ -186,6 +192,28 @@ public sealed class CliTests
             var program = await File.ReadAllTextAsync(Path.Combine(app, "Program.cs"));
             Assert.Contains(registration, program);
             Assert.Contains(method, program);
+        }
+        finally
+        {
+            Directory.SetCurrentDirectory(original);
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task New_can_configure_a_local_framework_package_source()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "anvil-package-source", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        var original = Directory.GetCurrentDirectory();
+
+        try
+        {
+            Directory.SetCurrentDirectory(root);
+            Assert.Equal(0, await AnvilCli.RunAsync(["new", "PackageApp", "--package-source", "D:\\dev-tools-path\\packages"]));
+            var config = await File.ReadAllTextAsync(Path.Combine(root, "PackageApp", "NuGet.config"));
+            Assert.Contains("D:\\dev-tools-path\\packages", config);
+            Assert.Contains("Anvil.Razor", await File.ReadAllTextAsync(Path.Combine(root, "PackageApp", "PackageApp.csproj")));
         }
         finally
         {

@@ -14,7 +14,10 @@ public sealed class ReleaseAcceptanceTests
 
         try
         {
-            var cli = Path.Combine(root, "src", "Anvil.Cli", "bin", "Debug", "net10.0", "Anvil.Cli.dll");
+            var configuration = File.Exists(Path.Combine(root, "src", "Anvil.Cli", "bin", "Release", "net10.0", "Anvil.Cli.dll"))
+                ? "Release"
+                : "Debug";
+            var cli = Path.Combine(root, "src", "Anvil.Cli", "bin", configuration, "net10.0", "Anvil.Cli.dll");
             Assert.True(File.Exists(cli), $"CLI must be built before acceptance tests: {cli}");
 
             await RunCli(cli, root, workspace, ["new", "MyApp", "--profile", "identity"]);
@@ -23,6 +26,7 @@ public sealed class ReleaseAcceptanceTests
             await RunCli(cli, root, app, ["make", "crud", "Customer"]);
             await RunCli(cli, root, app, ["generate"]);
             await RunCli(cli, root, app, ["generate", "--check"]);
+            await RunCli(cli, root, app, ["check"]);
             await RunProcess("dotnet", ["restore", Path.Combine(app, "MyApp.csproj")], app);
             await RunProcess("dotnet", ["ef", "migrations", "add", "InitialCreate", "--project", Path.Combine(app, "MyApp.csproj")], app);
             await RunProcess("dotnet", ["build", Path.Combine(app, "MyApp.csproj")], app);

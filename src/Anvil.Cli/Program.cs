@@ -15,6 +15,12 @@ internal static class AnvilCli
 {
     public static async Task<int> RunAsync(string[] args)
     {
+        if (args.Length == 1 && (args[0] is "--version" or "-v"))
+        {
+            Console.WriteLine(typeof(Program).Assembly.GetName().Version?.ToString(3) ?? "0.0.0");
+            return 0;
+        }
+
         if (args.Length == 0 || IsHelp(args[0]))
         {
             PrintHelp();
@@ -32,7 +38,7 @@ internal static class AnvilCli
             "release" => ReleaseDiagnostics(args[1..]),
             "build" => await RunDotnetCommandAsync("build", args[1..]),
             "publish" => await RunDotnetCommandAsync("publish", args[1..]),
-            "check" => await RunDotnetCommandAsync("build", ["--no-restore", .. args[1..]]),
+            "check" => await RunDotnetCommandAsync("build", args[1..]),
             "migrate" => await MigrateAsync(args[1..]),
             "doctor" => Doctor(args[1..]),
             "mail" => Mail(args[1..]),
@@ -53,7 +59,7 @@ internal static class AnvilCli
     {
         if (args.Length == 0 || IsHelp(args[0]))
         {
-            Console.WriteLine("Usage: anvil new <name> [--output <directory>] [--profile default|identity] [--database sqlite|sqlserver|postgresql|mysql] [--force]");
+            Console.WriteLine("Usage: anvil new <name> [--output <directory>] [--profile default|identity] [--database sqlite|sqlserver|postgresql|mysql] [--package-source <directory>] [--force]");
             return args.Length == 0 ? 1 : 0;
         }
 
@@ -68,6 +74,7 @@ internal static class AnvilCli
         var force = false;
         var profile = "default";
         var database = AnvilDatabaseProvider.Sqlite;
+        string? packageSource = null;
 
         for (var index = 1; index < args.Length; index++)
         {
@@ -93,6 +100,9 @@ internal static class AnvilCli
                         Console.Error.WriteLine("Database must be 'sqlite', 'sqlserver', 'postgresql', or 'mysql'.");
                         return 1;
                     }
+                    break;
+                case "--package-source" when index + 1 < args.Length:
+                    packageSource = Path.GetFullPath(args[++index]);
                     break;
                 default:
                     Console.Error.WriteLine($"Unknown option: {args[index]}");
@@ -127,6 +137,8 @@ internal static class AnvilCli
         WriteFile(projectDirectory, "Components/Pages/Home.razor", HomeFile());
         WriteFile(projectDirectory, "Components/_Imports.razor", ImportsFile(namespaceName));
         WriteFile(projectDirectory, "wwwroot/app.css", CssFile());
+        if (packageSource is not null)
+            WriteFile(projectDirectory, "NuGet.config", NuGetConfigFile(packageSource));
         WriteFile(projectDirectory, "Dockerfile", Dockerfile(namespaceName));
         WriteFile(projectDirectory, "compose.yaml", ComposeFile(namespaceName));
         WriteFile(projectDirectory, "DEPLOYMENT.md", DeploymentFile());
@@ -135,6 +147,7 @@ internal static class AnvilCli
         Console.WriteLine($"Created Anvil app at {projectDirectory}");
         Console.WriteLine($"  profile: {profile}");
         Console.WriteLine($"  database: {database.ToString().ToLowerInvariant()}");
+        if (packageSource is not null) Console.WriteLine($"  package source: {packageSource}");
         Console.WriteLine($"  cd {projectDirectory}");
         Console.WriteLine("  anvil dev");
         return 0;
@@ -567,8 +580,14 @@ internal static class AnvilCli
         if (production)
         {
             Result(sourceText.Contains("AddAnvilProduction", StringComparison.Ordinal) ? "PASS" : "BLOCKING", "Production security configuration " + (sourceText.Contains("AddAnvilProduction", StringComparison.Ordinal) ? "enabled." : "not enabled."), !sourceText.Contains("AddAnvilProduction", StringComparison.Ordinal));
-            Result(sourceText.Contains("MapAnvilHealthChecks", StringComparison.Ordinal) ? "PASS" : "BLOCKING", "Health/readiness endpoints " + (sourceText.Contains("MapAnvilHealthChecks", StringComparison.Ordinal) ? "configured." : "not configured."), !sourceText.Contains("MapAnvilHealthChecks", StringComparison.Ordinal));
-            Result(sourceText.Contains("UseHsts", StringComparison.Ordinal) || sourceText.Contains("UseAnvilProduction", StringComparison.Ordinal) ? "PASS" : "WARNING", "HTTPS/HSTS configuration " + (sourceText.Contains("UseAnvilProduction", StringComparison.Ordinal) ? "detected." : "not detected."));
+            var healthConfigured = sourceText.Contains("MapAnvilHealthChecks", StringComparison.Ordinal)
+                || sourceText.Contains("MapHealthChecks", StringComparison.Ordinal)
+                || sourceText.Contains("MapAnvilReadiness", StringComparison.Ordinal);
+            Result(healthConfigured ? "PASS" : "BLOCKING", "Health/readiness endpoints " + (healthConfigured ? "configured." : "not configured."), !healthConfigured);
+            var httpsConfigured = sourceText.Contains("UseHsts", StringComparison.Ordinal)
+                || sourceText.Contains("UseHttpsRedirection", StringComparison.Ordinal)
+                || sourceText.Contains("UseAnvilProduction", StringComparison.Ordinal);
+            Result(httpsConfigured ? "PASS" : "WARNING", "HTTPS/HSTS configuration " + (httpsConfigured ? "detected." : "not detected."));
             Result(productionText.Contains("Password", StringComparison.OrdinalIgnoreCase) || productionText.Contains("Secret", StringComparison.OrdinalIgnoreCase) || productionText.Contains("Token", StringComparison.OrdinalIgnoreCase) ? "BLOCKING" : "PASS", "Production settings do not contain obvious secret values.", productionText.Contains("Password", StringComparison.OrdinalIgnoreCase) || productionText.Contains("Secret", StringComparison.OrdinalIgnoreCase) || productionText.Contains("Token", StringComparison.OrdinalIgnoreCase));
         Result(File.Exists(Path.Combine(root, "DEPLOYMENT.md")) ? "PASS" : "WARNING", "Deployment guidance " + (File.Exists(Path.Combine(root, "DEPLOYMENT.md")) ? "found." : "not found."));
         Result(projectText.Contains("net10.0", StringComparison.OrdinalIgnoreCase) ? "PASS" : "WARNING", "Target framework metadata inspected.");
@@ -938,6 +957,7 @@ internal static class AnvilCli
     private static void PrintHelp()
     {
         Console.WriteLine("Anvil - a minimal server-rendered .NET framework");
+        Console.WriteLine($"Version: {typeof(Program).Assembly.GetName().Version?.ToString(3) ?? "0.0.0"}");
         Console.WriteLine();
         Console.WriteLine("Commands:");
         Console.WriteLine("  anvil new <name>       Create a new Anvil application");
@@ -952,8 +972,9 @@ internal static class AnvilCli
         Console.WriteLine("  anvil routes|asset      Inspect routes or asset guidance");
         Console.WriteLine();
         Console.WriteLine("Options:");
+        Console.WriteLine("  anvil --version");
         Console.WriteLine("  anvil dev --project <path>");
-        Console.WriteLine("  anvil new <name> --output <directory> [--profile default|identity] [--database sqlite|sqlserver|postgresql|mysql] [--force]");
+        Console.WriteLine("  anvil new <name> --output <directory> [--profile default|identity] [--database sqlite|sqlserver|postgresql|mysql] [--package-source <directory>] [--force]");
         Console.WriteLine("  anvil make resource|endpoint|page|shard|crud <Name> [--force]");
         Console.WriteLine("  anvil make:page <Name> [--force]");
         Console.WriteLine("  anvil make:shard <Name> [--force]");
@@ -1217,6 +1238,17 @@ internal static class AnvilCli
             "DefaultConnection": "Data Source=app.db"
           }
         }
+        """;
+
+    private static string NuGetConfigFile(string packageSource) => $$"""
+        <?xml version="1.0" encoding="utf-8"?>
+        <configuration>
+          <packageSources>
+            <clear />
+            <add key="anvil-local" value="{{System.Security.SecurityElement.Escape(packageSource)}}" />
+            <add key="nuget.org" value="https://api.nuget.org/v3/index.json" protocolVersion="3" />
+          </packageSources>
+        </configuration>
         """;
 
     private static string AppFile(string namespaceName) => $$"""

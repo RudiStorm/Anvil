@@ -5,6 +5,7 @@ obj/
 # Local CLI publish output
 dev-tools-path/
 D:/dev-tools-path/
+dev-tools-path/packages/
 
 # Local development state
 .vs/

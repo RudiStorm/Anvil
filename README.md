@@ -54,6 +54,22 @@ runtime, or configuration when needed:
 .\Publish-AnvilCli.ps1 -OutputDirectory D:\tools -Runtime win-x64 -Configuration Release
 ```
 
+To create the framework packages used by package-mode generated applications:
+
+```powershell
+.\Publish-AnvilPackages.ps1
+```
+
+The package output contains `Anvil`, `Anvil.Razor`, and `Anvil.Cli` packages at
+the aligned project version. Publish the first two to the configured NuGet feed
+before using `anvil new` outside a source checkout.
+
+For a local package feed, pass it during generation:
+
+```powershell
+anvil new Portal --package-source D:\dev-tools-path\packages
+```
+
 `anvil dev` delegates to `dotnet watch` and forwards additional arguments to
 the application. Generated projects use source references when created from
 this repository and package references when created elsewhere.
