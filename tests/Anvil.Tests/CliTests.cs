@@ -199,6 +199,8 @@ public sealed class CliTests
             Assert.Contains("AddAnvilSqlitePersistence<AppDbContext>", program);
             Assert.True(File.Exists(Path.Combine(root, "Store", "Data", "AppDbContext.cs")));
             Assert.True(File.Exists(Path.Combine(root, "Store", "appsettings.json")));
+            Assert.Contains("dotnet-ef", await File.ReadAllTextAsync(Path.Combine(root, "Store", ".config", "dotnet-tools.json")));
+            Assert.Contains("10.0.12", await File.ReadAllTextAsync(Path.Combine(root, "Store", ".config", "dotnet-tools.json")));
         }
         finally
         {

@@ -132,6 +132,7 @@ internal static class AnvilCli
         if (profile == "identity")
             WriteFile(projectDirectory, "Security/ApplicationUser.cs", ApplicationUserFile(namespaceName));
         WriteFile(projectDirectory, "appsettings.json", AppSettingsFile());
+        WriteFile(projectDirectory, ".config/dotnet-tools.json", DotnetToolsManifestFile());
         WriteFile(projectDirectory, "Components/App.razor", AppFile(namespaceName));
         WriteFile(projectDirectory, "Components/Layout/MainLayout.razor", LayoutFile());
         WriteFile(projectDirectory, "Components/Pages/Home.razor", HomeFile());
@@ -151,6 +152,7 @@ internal static class AnvilCli
         if (packageSource is not null) Console.WriteLine($"  package source: {packageSource}");
         Console.WriteLine($"  cd {projectDirectory}");
         Console.WriteLine($"  dotnet ef migrations add InitialCreate --project {namespaceName}.csproj");
+        Console.WriteLine("  dotnet tool restore");
         Console.WriteLine("  anvil dev");
         return 0;
     }
@@ -1336,6 +1338,20 @@ internal static class AnvilCli
             <add key="nuget.org" value="https://api.nuget.org/v3/index.json" protocolVersion="3" />
           </packageSources>
         </configuration>
+        """;
+
+    private static string DotnetToolsManifestFile() => """
+        {
+          "version": 1,
+          "isRoot": true,
+          "tools": {
+            "dotnet-ef": {
+              "version": "10.0.12",
+              "commands": ["dotnet-ef"],
+              "rollForward": false
+            }
+          }
+        }
         """;
 
     private static string AppFile(string namespaceName) => $$"""

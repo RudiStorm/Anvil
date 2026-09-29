@@ -179,6 +179,10 @@ dotnet ef migrations add InitialCreate --project src/MyApp
 anvil migrate
 ```
 
+Generated applications include `.config/dotnet-tools.json` with a pinned
+`dotnet-ef` version. Run `dotnet tool restore` before authoring migrations so
+the local tool matches the EF runtime instead of an older global tool.
+
 ### Operational Commands
 
 ```text
