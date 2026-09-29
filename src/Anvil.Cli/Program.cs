@@ -1313,10 +1313,10 @@ internal static class AnvilCli
          builder.Services.AddAnvilOpenApi();
           builder.Services.AddAnvilMail();
           builder.Services.AddAnvilObservability();
-          builder.Services.AddAnvilBackgroundJobs();
-          builder.Services.AddAnvilScheduling();
-          builder.Services.AddAnvilTransactionalOutbox<AppDbContext>();
-         {{(identity ? $"builder.Services.AddAnvilIdentity<{namespaceName}.Security.ApplicationUser, AppDbContext>();" : "")}}
+         builder.Services.AddAnvilBackgroundJobs();
+         builder.Services.AddAnvilScheduling();
+         builder.Services.AddAnvilTransactionalOutbox<AppDbContext>();
+         {{(identity ? $"builder.Services.AddAnvilIdentityContracts();\nbuilder.Services.AddAnvilIdentity<{namespaceName}.Security.ApplicationUser, AppDbContext>();" : "")}}
 
         var app = builder.Build();
          app.UseAnvilProduction();

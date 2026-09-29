@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -19,31 +20,31 @@ public static class AnvilIdentityEndpointRouteBuilderExtensions
         var options = endpoints.ServiceProvider.GetService<IOptions<AnvilIdentityOptions>>()?.Value ?? new();
         var identity = endpoints.MapGroup(string.Empty);
 
-        identity.MapPost(options.LoginPath, async (AnvilLoginRequest request, SignInManager<TUser> signInManager) =>
+        identity.MapPost(options.LoginPath, async (AnvilLoginRequest request, [FromServices] SignInManager<TUser> signInManager) =>
         {
             var result = await signInManager.PasswordSignInAsync(request.UserName, request.Password, request.RememberMe, true);
             return result.Succeeded ? Results.Ok() : result.RequiresTwoFactor ? Results.Ok(new { requiresTwoFactor = true }) : result.IsLockedOut ? Results.StatusCode(StatusCodes.Status423Locked) : Results.Unauthorized();
         }).RequireAnvilAntiforgery();
 
-        identity.MapPost(options.MfaLoginPath, async (AnvilMfaLoginRequest request, SignInManager<TUser> signInManager) =>
+        identity.MapPost(options.MfaLoginPath, async (AnvilMfaLoginRequest request, [FromServices] SignInManager<TUser> signInManager) =>
         {
             var result = await signInManager.TwoFactorAuthenticatorSignInAsync(request.Code, request.RememberMe, request.RememberMachine);
             return result.Succeeded ? Results.Ok() : Results.Unauthorized();
         }).RequireAnvilAntiforgery();
 
-        identity.MapPost(options.MfaRecoveryLoginPath, async (AnvilMfaLoginRequest request, SignInManager<TUser> signInManager) =>
+        identity.MapPost(options.MfaRecoveryLoginPath, async (AnvilMfaLoginRequest request, [FromServices] SignInManager<TUser> signInManager) =>
         {
             var result = await signInManager.TwoFactorRecoveryCodeSignInAsync(request.Code);
             return result.Succeeded ? Results.Ok() : Results.Unauthorized();
         }).RequireAnvilAntiforgery();
 
-        identity.MapPost(options.LogoutPath, async (SignInManager<TUser> signInManager) =>
+        identity.MapPost(options.LogoutPath, async ([FromServices] SignInManager<TUser> signInManager) =>
         {
             await signInManager.SignOutAsync();
             return Results.Ok();
         }).RequireAuthorization().RequireAnvilAntiforgery();
 
-        identity.MapPost(options.RegisterPath, async (AnvilRegisterRequest request, UserManager<TUser> userManager, IOptions<AnvilIdentityOptions> settings, IEnumerable<IAnvilIdentityMessageSender<TUser>> senders) =>
+        identity.MapPost(options.RegisterPath, async (AnvilRegisterRequest request, [FromServices] UserManager<TUser> userManager, [FromServices] IOptions<AnvilIdentityOptions> settings, [FromServices] IEnumerable<IAnvilIdentityMessageSender<TUser>> senders) =>
         {
             if (settings.Value.RegistrationMode != AnvilRegistrationMode.Public) return Results.NotFound();
             var user = new TUser { UserName = request.UserName, Email = request.Email };
@@ -56,7 +57,7 @@ public static class AnvilIdentityEndpointRouteBuilderExtensions
             return result.Succeeded ? Results.Ok(new { userId = user.Id, emailConfirmed = user.EmailConfirmed }) : IdentityErrors(result);
         }).RequireAnvilAntiforgery();
 
-        identity.MapPost(options.ConfirmEmailPath, async (AnvilConfirmEmailRequest request, UserManager<TUser> users) =>
+        identity.MapPost(options.ConfirmEmailPath, async (AnvilConfirmEmailRequest request, [FromServices] UserManager<TUser> users) =>
         {
             var user = await users.FindByIdAsync(request.UserId);
             if (user is null) return Results.NotFound();
@@ -64,7 +65,7 @@ public static class AnvilIdentityEndpointRouteBuilderExtensions
             return result.Succeeded ? Results.Ok() : IdentityErrors(result);
         }).RequireAnvilAntiforgery();
 
-        identity.MapPost(options.ForgotPasswordPath, async (AnvilForgotPasswordRequest request, UserManager<TUser> users, IEnumerable<IAnvilIdentityMessageSender<TUser>> senders) =>
+        identity.MapPost(options.ForgotPasswordPath, async (AnvilForgotPasswordRequest request, [FromServices] UserManager<TUser> users, [FromServices] IEnumerable<IAnvilIdentityMessageSender<TUser>> senders) =>
         {
             var user = await users.FindByNameAsync(request.UserNameOrEmail) ?? await users.FindByEmailAsync(request.UserNameOrEmail);
             if (user is not null && await users.IsEmailConfirmedAsync(user))
@@ -76,7 +77,7 @@ public static class AnvilIdentityEndpointRouteBuilderExtensions
             return Results.Ok(new { sent = true });
         }).RequireAnvilAntiforgery();
 
-        identity.MapPost(options.ResetPasswordPath, async (AnvilResetPasswordRequest request, UserManager<TUser> users) =>
+        identity.MapPost(options.ResetPasswordPath, async (AnvilResetPasswordRequest request, [FromServices] UserManager<TUser> users) =>
         {
             var user = await users.FindByIdAsync(request.UserId);
             if (user is null) return Results.BadRequest();
@@ -91,7 +92,7 @@ public static class AnvilIdentityEndpointRouteBuilderExtensions
             authenticated = context.User.Identity?.IsAuthenticated == true
         })).RequireAuthorization();
 
-        identity.MapGet(options.MfaSetupPath, async (HttpContext context, UserManager<TUser> users, IOptions<AnvilIdentityOptions> settings) =>
+        identity.MapGet(options.MfaSetupPath, async (HttpContext context, [FromServices] UserManager<TUser> users, [FromServices] IOptions<AnvilIdentityOptions> settings) =>
         {
             var user = await CurrentUser(context, users);
             if (user is null) return Results.Unauthorized();
@@ -104,7 +105,7 @@ public static class AnvilIdentityEndpointRouteBuilderExtensions
             return Results.Ok(new AnvilMfaSetup(key!, AnvilTotp.CreateProvisioningUri("Anvil", user.Email ?? user.UserName ?? user.Id, key!)));
         }).RequireAuthorization();
 
-        identity.MapPost(options.MfaVerifyPath, async (HttpContext context, AnvilMfaVerifyRequest request, UserManager<TUser> users) =>
+        identity.MapPost(options.MfaVerifyPath, async (HttpContext context, AnvilMfaVerifyRequest request, [FromServices] UserManager<TUser> users) =>
         {
             var user = await CurrentUser(context, users);
             if (user is null) return Results.Unauthorized();
@@ -114,7 +115,7 @@ public static class AnvilIdentityEndpointRouteBuilderExtensions
             return result.Succeeded ? Results.Ok() : IdentityErrors(result);
         }).RequireAuthorization().RequireAnvilAntiforgery();
 
-        identity.MapPost(options.MfaRecoveryCodesPath, async (HttpContext context, UserManager<TUser> users) =>
+        identity.MapPost(options.MfaRecoveryCodesPath, async (HttpContext context, [FromServices] UserManager<TUser> users) =>
         {
             var user = await CurrentUser(context, users);
             if (user is null) return Results.Unauthorized();
@@ -122,19 +123,19 @@ public static class AnvilIdentityEndpointRouteBuilderExtensions
             return codes is null ? Results.BadRequest() : Results.Ok(new { codes });
         }).RequireAuthorization().RequireAnvilAntiforgery();
 
-        identity.MapGet($"{options.ExternalLoginPath}/{{provider}}", (string provider, string? returnUrl, IEnumerable<IAnvilExternalLoginProvider> providers) =>
+        identity.MapGet($"{options.ExternalLoginPath}/{{provider}}", (string provider, string? returnUrl, [FromServices] IEnumerable<IAnvilExternalLoginProvider> providers) =>
         {
             var external = providers.FirstOrDefault(x => string.Equals(x.Name, provider, StringComparison.OrdinalIgnoreCase));
             return external is null ? Results.NotFound() : Results.Redirect(external.CreateChallenge(returnUrl ?? "/"));
         });
 
-        identity.MapGet("/account/devices", async (HttpContext context, UserManager<TUser> users, IAnvilDeviceSessionStore sessions) =>
+        identity.MapGet("/account/devices", async (HttpContext context, [FromServices] UserManager<TUser> users, [FromServices] IAnvilDeviceSessionStore sessions) =>
         {
             var userId = users.GetUserId(context.User);
             return userId is null ? Results.Unauthorized() : Results.Ok(await sessions.ListAsync(userId));
         }).RequireAuthorization();
 
-        identity.MapDelete("/account/devices/{sessionId}", async (string sessionId, HttpContext context, UserManager<TUser> users, IAnvilDeviceSessionStore sessions) =>
+        identity.MapDelete("/account/devices/{sessionId}", async (string sessionId, HttpContext context, [FromServices] UserManager<TUser> users, [FromServices] IAnvilDeviceSessionStore sessions) =>
         {
             var userId = users.GetUserId(context.User);
             if (userId is null) return Results.Unauthorized();
@@ -142,7 +143,7 @@ public static class AnvilIdentityEndpointRouteBuilderExtensions
             return Results.NoContent();
         }).RequireAuthorization().RequireAnvilAntiforgery();
 
-        identity.MapDelete("/account/devices", async (HttpContext context, UserManager<TUser> users, IAnvilDeviceSessionStore sessions) =>
+        identity.MapDelete("/account/devices", async (HttpContext context, [FromServices] UserManager<TUser> users, [FromServices] IAnvilDeviceSessionStore sessions) =>
         {
             var userId = users.GetUserId(context.User);
             if (userId is null) return Results.Unauthorized();

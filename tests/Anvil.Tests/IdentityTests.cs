@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Anvil.Tests;
@@ -22,6 +24,26 @@ public sealed class IdentityTests
         Assert.Contains(services, descriptor => descriptor.ServiceType == typeof(UserManager<ApplicationUser>));
         Assert.Contains(services, descriptor => descriptor.ServiceType == typeof(IAuthenticationService));
         Assert.Contains(services, descriptor => descriptor.ServiceType == typeof(IAntiforgery));
+    }
+
+    [Fact]
+    public async Task Identity_endpoints_start_without_inferred_service_bodies()
+    {
+        var builder = WebApplication.CreateBuilder();
+        builder.WebHost.UseTestServer();
+        builder.Services.AddDbContext<TestIdentityDbContext>(options =>
+            options.UseInMemoryDatabase(Guid.NewGuid().ToString("N")));
+        builder.Services.AddAnvilIdentityContracts();
+        builder.Services.AddAnvilIdentity<TestIdentityDbContext>();
+
+        var app = builder.Build();
+        app.UseAuthentication();
+        app.UseAuthorization();
+        app.MapAnvilIdentityEndpoints();
+
+        await app.StartAsync();
+        await app.StopAsync();
+        await app.DisposeAsync();
     }
 
     [Fact]
