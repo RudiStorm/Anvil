@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#10110f" />
+    <meta name="description" content="Anvil is a server-rendered .NET framework for building focused, production-ready web applications with Razor." />
+    <title>Anvil — The .NET framework forged for the way you build</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="site-shell">
+      <header class="site-header">
+        <a class="brand" href="#top" aria-label="Anvil home">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 40 40" role="img">
+              <path d="M9 30h22M12 30l3-13h10l3 13M17 17l3-8 3 8M14 23h12" />
+              <path class="brand-spark" d="m8 9 2 3 3 2-3 2-2 3-2-3-3-2 3-2 2-3Z" />
+            </svg>
+          </span>
+          <span class="brand-name">anvil<span class="brand-dot">.</span></span>
+        </a>
+        <nav class="main-nav" aria-label="Primary navigation">
+          <a href="framework.html">Framework</a>
+          <a href="getting-started.html">Get started</a>
+          <a href="operations.html">Operations</a>
+          <a href="batteries.html">Included</a>
+        </nav>
+        <details class="mobile-nav">
+          <summary>Menu</summary>
+          <nav aria-label="Mobile navigation">
+            <a href="framework.html">Framework</a>
+            <a href="getting-started.html">Get started</a>
+            <a href="operations.html">Operations</a>
+            <a href="batteries.html">Included</a>
+          </nav>
+        </details>
+        <a class="button button-small button-quiet" href="getting-started.html">Read the guide <span aria-hidden="true">→</span></a>
+      </header>
+
+      <main id="top">
+        <section class="hero section-wrap" aria-labelledby="hero-title">
+          <div class="hero-copy">
+            <p class="eyebrow"><span class="eyebrow-line"></span> Server-rendered .NET</p>
+            <h1 id="hero-title">Build with a framework that <em>holds up.</em></h1>
+            <p class="hero-lede">Anvil brings Razor-native rendering, typed routes, and production-grade conventions to the .NET web stack — without the ceremony.</p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="getting-started.html">Start building <span aria-hidden="true">→</span></a>
+              <a class="text-link" href="framework.html">See how Anvil works <span aria-hidden="true">→</span></a>
+            </div>
+            <p class="hero-note"><span class="status-dot" aria-hidden="true"></span> Built for .NET 10 <span class="note-divider">·</span> Open source</p>
+          </div>
+
+          <div class="hero-code code-window" aria-label="Anvil code example">
+            <div class="window-bar">
+              <div class="window-dots" aria-hidden="true"><i></i><i></i><i></i></div>
+              <span>Pages/Welcome.razor</span>
+              <span class="window-language">C#</span>
+            </div>
+            <pre><code><span class="line-number">01</span> <span class="syntax-keyword">@page</span> <span class="syntax-string">"/welcome"</span>
+<span class="line-number">02</span>
+<span class="line-number">03</span> <span class="syntax-tag">&lt;Layout</span> <span class="syntax-attr">Title</span><span class="syntax-punc">=</span><span class="syntax-string">"Welcome"</span><span class="syntax-tag">&gt;</span>
+<span class="line-number">04</span>   <span class="syntax-tag">&lt;main</span> <span class="syntax-attr">class</span><span class="syntax-punc">=</span><span class="syntax-string">"prose"</span><span class="syntax-tag">&gt;</span>
+<span class="line-number">05</span>     <span class="syntax-tag">&lt;h1&gt;</span>Make something solid.<span class="syntax-tag">&lt;/h1&gt;</span>
+<span class="line-number">06</span>     <span class="syntax-tag">&lt;p&gt;</span>
+<span class="line-number">07</span>       Your next idea starts here.
+<span class="line-number">08</span>     <span class="syntax-tag">&lt;/p&gt;</span>
+<span class="line-number">09</span>   <span class="syntax-tag">&lt;/main&gt;</span>
+<span class="line-number">10</span> <span class="syntax-tag">&lt;/Layout&gt;</span></code></pre>
+            <div class="code-caption"><span>Rendered on the server</span><span class="caption-check">✓</span></div>
+          </div>
+        </section>
+
+        <section class="why-anvil section-wrap" aria-labelledby="why-title">
+          <div class="section-intro">
+            <p class="eyebrow"><span class="eyebrow-line"></span> Why Anvil</p>
+            <h2 id="why-title">Server-rendered .NET<br /><em>with a smaller surface.</em></h2>
+            <p>Anvil is for teams building focused, server-rendered .NET applications who want the speed of a clear framework without leaving ASP.NET Core behind.</p>
+          </div>
+          <div class="why-grid">
+            <article class="why-panel">
+              <span class="panel-number">01</span>
+              <h3>Keep the platform you know.</h3>
+              <p>Stay close to ASP.NET Core, Razor, dependency injection, and the .NET ecosystem. Anvil gives the everyday path a clearer shape.</p>
+            </article>
+            <article class="why-panel why-panel-accent">
+              <span class="panel-number">02</span>
+              <h3>Ship more than a hello world.</h3>
+              <p>Start with the pieces real products need: identity, typed routes, partial HTML updates, durable work, diagnostics, and provider-ready integrations.</p>
+            </article>
+            <article class="why-panel why-panel-proof">
+              <span class="panel-number">03</span>
+              <h3>See something real.</h3>
+              <p>The repository includes an editable sample application with products, team, settings, identity, operations, and integration paths.</p>
+              <a class="text-link" href="https://github.com/RudiStorm/Anvil#running-the-sample">Explore the sample app <span aria-hidden="true">↗</span></a>
+            </article>
+          </div>
+        </section>
+
+        <section class="included-preview section-wrap" aria-labelledby="included-title">
+          <div class="included-heading"><p class="eyebrow"><span class="eyebrow-line"></span> Batteries included</p><h2 id="included-title">The pieces you need<br /><em>are already here.</em></h2><p>Authentication, queues, observability, storage, email, and more — see the full inventory of Anvil's production-shaped building blocks.</p><a class="text-link" href="batteries.html">Explore everything included <span aria-hidden="true">→</span></a></div>
+          <div class="included-preview-grid"><span>Authentication</span><span>Authorization</span><span>Queues</span><span>OpenTelemetry</span><span>Audit logging</span><span>Document storage</span></div>
+        </section>
+
+        <section class="proof-strip section-wrap" aria-label="Anvil highlights">
+          <div class="proof-item"><span class="proof-number">01</span><span>Razor-native<br /><strong>UI</strong></span></div>
+          <div class="proof-item"><span class="proof-number">02</span><span>Typed<br /><strong>routes</strong></span></div>
+          <div class="proof-item"><span class="proof-number">03</span><span>Focused<br /><strong>conventions</strong></span></div>
+          <div class="proof-item"><span class="proof-number">04</span><span>Production<br /><strong>ready</strong></span></div>
+        </section>
+
+        <section class="capabilities section-wrap" id="capabilities" aria-labelledby="capabilities-title">
+          <div class="section-intro">
+            <p class="eyebrow"><span class="eyebrow-line"></span> The good stuff</p>
+            <h2 id="capabilities-title">Everything you need.<br /><em>Nothing you don’t.</em></h2>
+            <p>Anvil stays close to ASP.NET Core, then makes the everyday work feel considered. Small APIs, clear conventions, and sensible defaults from the first request.</p>
+          </div>
+          <div class="capability-grid">
+            <article class="capability-card capability-featured">
+              <div class="card-icon" aria-hidden="true"><span>✦</span></div>
+              <p class="card-index">01 / Rendering</p>
+              <h3>Razor that feels right at home.</h3>
+              <p>Component routes, layouts, partial HTML updates, and server-rendered pages — organized around the way your app actually grows.</p>
+              <a class="card-link" href="framework.html#rendering">Explore rendering <span aria-hidden="true">→</span></a>
+            </article>
+            <article class="capability-card">
+              <div class="card-icon card-icon-grid" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+              <p class="card-index">02 / Context</p>
+              <h3>Request context, made useful.</h3>
+              <p>Cookies, sessions, memoization, services, and route links with an API that stays close to the request.</p>
+              <a class="card-link" href="framework.html#request-context">Read the guide <span aria-hidden="true">→</span></a>
+            </article>
+            <article class="capability-card">
+              <div class="card-icon" aria-hidden="true"><span class="shield-icon">◇</span></div>
+              <p class="card-index">03 / Identity</p>
+              <h3>Security is part of the shape.</h3>
+              <p>Identity, MFA, authorization, audit contracts, and tenancy are ready to become part of your application's foundation.</p>
+              <a class="card-link" href="operations.html#identity">See identity <span aria-hidden="true">→</span></a>
+            </article>
+            <article class="capability-card capability-wide">
+              <div class="card-icon card-icon-bars" aria-hidden="true"><span></span><span></span><span></span></div>
+              <div>
+                <p class="card-index">04 / Operations</p>
+                <h3>Ready for the long haul.</h3>
+                <p>Durable jobs, webhooks, storage, readiness, production diagnostics, and operations adapters — all in one coherent framework.</p>
+                <a class="card-link" href="operations.html">View operations <span aria-hidden="true">→</span></a>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section class="understand section-wrap" aria-labelledby="understand-title">
+          <div class="understand-heading">
+            <p class="eyebrow"><span class="eyebrow-line"></span> Start with the why</p>
+            <h2 id="understand-title">A framework that<br /><em>gets out of the way.</em></h2>
+          </div>
+          <div class="understand-grid">
+            <article class="understand-panel">
+              <span class="panel-number">01</span>
+              <h3>What Anvil is</h3>
+              <p>Anvil is a server-rendered .NET framework inspired by the best parts of focused web stacks: pages live close to their routes, the request has a clear home, and the path from idea to production stays short.</p>
+              <a class="text-link" href="framework.html">Understand the framework <span aria-hidden="true">→</span></a>
+            </article>
+            <article class="understand-panel understand-panel-accent">
+              <span class="panel-number">02</span>
+              <h3>How a request moves</h3>
+              <div class="lifecycle-mini" aria-label="Request lifecycle: route, context, render">
+                <span><b>01</b> route</span><i aria-hidden="true">→</i><span><b>02</b> context</span><i aria-hidden="true">→</i><span><b>03</b> render</span>
+              </div>
+              <p>Routes resolve into a typed request context, your page does the work, and Anvil returns HTML that is ready for the browser.</p>
+              <a class="text-link" href="framework.html#lifecycle">Follow the lifecycle <span aria-hidden="true">→</span></a>
+            </article>
+          </div>
+        </section>
+
+        <section class="examples section-wrap" id="examples" aria-labelledby="examples-title">
+          <div class="examples-heading">
+            <p class="eyebrow"><span class="eyebrow-line"></span> A smaller surface area</p>
+            <h2 id="examples-title">More time in the idea.<br /><em>Less time in the plumbing.</em></h2>
+          </div>
+          <div class="example-layout">
+            <div class="example-code code-window">
+              <div class="window-bar"><div class="window-dots" aria-hidden="true"><i></i><i></i><i></i></div><span>Routes.cs</span><span class="window-language">C#</span></div>
+              <pre><code><span class="line-number">01</span> <span class="syntax-keyword">public sealed record</span> <span class="syntax-type">ProductRoute</span>(<span class="syntax-type">int</span> Id);
+<span class="line-number">02</span>
+<span class="line-number">03</span> <span class="syntax-keyword">static readonly</span> <span class="syntax-type">AnvilRoute</span>&lt;<span class="syntax-type">ProductRoute</span>&gt; ProductDetails
+<span class="line-number">04</span>     <span class="syntax-punc">=</span> <span class="syntax-keyword">new</span>(<span class="syntax-string">"/products/{id:int}"</span>);
+<span class="line-number">05</span>
+<span class="line-number">06</span> <span class="syntax-keyword">var</span> href <span class="syntax-punc">=</span> ProductDetails.Link(
+<span class="line-number">07</span>     <span class="syntax-keyword">new</span> <span class="syntax-type">ProductRoute</span>(<span class="syntax-number">42</span>));</code></pre>
+            </div>
+            <div class="example-copy">
+              <p class="example-kicker">Typed routes</p>
+              <h3>Links that know where they’re going.</h3>
+              <p>Keep route values in a dedicated record. Let Anvil handle encoding, query values, fragments, and current-route checks. No stringly-typed guesswork required.</p>
+              <a class="text-link" href="framework.html#typed-routes">Read about routes <span aria-hidden="true">→</span></a>
+            </div>
+          </div>
+        </section>
+
+        <section class="final-cta section-wrap" aria-labelledby="cta-title">
+          <div class="cta-mark" aria-hidden="true"><span></span><span></span><span></span></div>
+          <p class="eyebrow"><span class="eyebrow-line"></span> Your next application</p>
+          <h2 id="cta-title">Put something solid<br /><em>on the web.</em></h2>
+          <div class="cta-actions">
+            <a class="button button-primary" href="getting-started.html">Read the getting started guide <span aria-hidden="true">→</span></a>
+            <a class="button button-outline" href="https://github.com/RudiStorm/Anvil">View the source <span aria-hidden="true">↗</span></a>
+          </div>
+          <p class="cta-note">Open source under the MIT license <span aria-hidden="true">·</span> Early preview <span aria-hidden="true">·</span> Built for .NET 10</p>
+        </section>
+      </main>
+
+      <footer class="site-footer section-wrap">
+        <a class="brand" href="#top" aria-label="Anvil home"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 40 40"><path d="M9 30h22M12 30l3-13h10l3 13M17 17l3-8 3 8M14 23h12" /></svg></span><span class="brand-name">anvil<span class="brand-dot">.</span></span></a>
+        <p>Forged for the way you build.</p>
+        <div class="footer-links"><a href="framework.html">Framework</a><a href="getting-started.html">Get started</a><a href="operations.html">Operations</a><a href="batteries.html">Included</a><a href="https://github.com/RudiStorm/Anvil">GitHub ↗</a></div>
+        <span class="footer-meta">© 2026 Anvil</span>
+      </footer>
+    </div>
+  </body>
+</html>

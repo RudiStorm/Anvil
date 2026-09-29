@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Learn how Anvil's server-rendered .NET framework handles Razor pages, typed routes, request context, and partial HTML updates." />
+    <title>The Anvil framework — Anvil</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="site-shell">
+      <header class="site-header">
+        <a class="brand" href="index.html" aria-label="Anvil home"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 40 40"><path d="M9 30h22M12 30l3-13h10l3 13M17 17l3-8 3 8M14 23h12" /></svg></span><span class="brand-name">anvil<span class="brand-dot">.</span></span></a>
+        <nav class="main-nav" aria-label="Primary navigation"><a class="nav-current" href="framework.html">Framework</a><a href="getting-started.html">Get started</a><a href="operations.html">Operations</a><a href="batteries.html">Included</a></nav>
+        <details class="mobile-nav"><summary>Menu</summary><nav aria-label="Mobile navigation"><a class="nav-current" href="framework.html">Framework</a><a href="getting-started.html">Get started</a><a href="operations.html">Operations</a><a href="batteries.html">Included</a></nav></details>
+        <a class="button button-small button-quiet" href="getting-started.html">Read the guide <span aria-hidden="true">→</span></a>
+      </header>
+
+      <main>
+        <section class="page-hero section-wrap" aria-labelledby="page-title">
+          <div><p class="eyebrow"><span class="eyebrow-line"></span> The framework</p><h1 id="page-title">The web stack,<br /><em>with less in the way.</em></h1></div>
+          <p class="page-hero-lede">Anvil is a server-rendered .NET framework built on ASP.NET Core and Razor. It gives pages, routes, and request context a focused home — then stays out of your way.</p>
+        </section>
+
+        <section class="content-section section-wrap" id="rendering" aria-labelledby="rendering-title">
+          <div class="content-label"><span>01</span><span>Rendering</span></div>
+          <div class="content-body"><h2 id="rendering-title">Razor pages that<br /><em>start close to the user.</em></h2><p>Keep your UI server-rendered, close to the route that owns it. Anvil discovers component routes through ASP.NET Core and gives you layouts, partial HTML updates, and a straightforward place to put page behavior.</p><div class="inline-points"><span>Component routes</span><span>Layouts</span><span>Partial HTML updates</span></div></div>
+        </section>
+
+        <section class="dark-feature section-wrap" id="lifecycle" aria-labelledby="lifecycle-title">
+          <div class="feature-copy"><p class="eyebrow"><span class="eyebrow-line"></span> Request lifecycle</p><h2 id="lifecycle-title">Three clear steps<br /><em>from URL to HTML.</em></h2><p>Anvil keeps the request path legible. A route identifies the page, the request context gathers what the page needs, and Razor renders the response.</p></div>
+          <div class="lifecycle-diagram"><div class="lifecycle-node"><b>01</b><strong>Route</strong><span>Typed values in.<br />A page to run.</span></div><i aria-hidden="true">→</i><div class="lifecycle-node lifecycle-node-active"><b>02</b><strong>Context</strong><span>Cookies, sessions,<br />services, state.</span></div><i aria-hidden="true">→</i><div class="lifecycle-node"><b>03</b><strong>Render</strong><span>Razor out.<br />HTML in the browser.</span></div></div>
+        </section>
+
+        <section class="content-section section-wrap" id="request-context" aria-labelledby="context-title">
+          <div class="content-label"><span>02</span><span>Request context</span></div>
+          <div class="content-body"><h2 id="context-title">A useful home for<br /><em>the current request.</em></h2><p>RequestContext exposes the work you repeatedly need: cookies, sessions, route links, application services, memoized data, and authorization checks. The API stays close to ASP.NET Core instead of hiding the platform from you.</p><div class="mini-code"><code><span class="syntax-keyword">var</span> products <span class="syntax-punc">=</span> <span class="syntax-keyword">await</span> request.MemoizeAsync(<span class="syntax-string">"products"</span>, LoadProductsAsync);</code></div></div>
+        </section>
+
+        <section class="content-section content-section-reverse section-wrap" id="typed-routes" aria-labelledby="routes-title">
+          <div class="content-label"><span>03</span><span>Typed routes</span></div>
+          <div class="content-body"><h2 id="routes-title">A URL is a contract,<br /><em>not a string.</em></h2><p>Keep route values in a dedicated record and let Anvil generate links from the same definition. Route encoding, query values, fragments, and current-route checks are part of the shape.</p><div class="mini-code"><code><span class="syntax-keyword">public sealed record</span> <span class="syntax-type">ProductRoute</span>(<span class="syntax-type">int</span> Id);<br /><span class="syntax-keyword">var</span> href <span class="syntax-punc">=</span> ProductDetails.Link(<span class="syntax-keyword">new</span> <span class="syntax-type">ProductRoute</span>(<span class="syntax-number">42</span>));</code></div></div>
+        </section>
+
+        <section class="page-cta section-wrap"><p class="eyebrow"><span class="eyebrow-line"></span> See it in motion</p><h2>Ready to make<br /><em>your first page?</em></h2><a class="button button-primary" href="getting-started.html">Get started with Anvil <span aria-hidden="true">→</span></a></section>
+      </main>
+
+      <footer class="site-footer section-wrap"><a class="brand" href="index.html" aria-label="Anvil home"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 40 40"><path d="M9 30h22M12 30l3-13h10l3 13M17 17l3-8 3 8M14 23h12" /></svg></span><span class="brand-name">anvil<span class="brand-dot">.</span></span></a><p>Forged for the way you build.</p><div class="footer-links"><a href="framework.html">Framework</a><a href="getting-started.html">Get started</a><a href="operations.html">Operations</a><a href="https://github.com/RudiStorm/Anvil">GitHub ↗</a></div><span class="footer-meta">© 2026 Anvil</span></footer>
+    </div>
+  </body>
+</html>
