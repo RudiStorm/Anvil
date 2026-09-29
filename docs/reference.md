@@ -68,7 +68,8 @@ anvil generate --check
 `make endpoint` creates an endpoint scaffold under `Endpoints`. Add request,
 response, validation, authorization, and handler logic there. `make:page` creates
 a routed Razor page under `Components/Pages`. `make:shard` creates a targeted
-Razor component under `Components/Shards` with the browser-runtime attributes.
+Razor component under `Components/Shards` plus a matching server endpoint under
+`Endpoints`, and adds the endpoint mapping to `Program.cs`.
 `make resource`
 creates the application model and resource boundary. `make crud` adds editable
 Razor list, detail, form, and mutation pages. The generated files belong to the

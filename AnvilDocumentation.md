@@ -141,7 +141,9 @@ authorization, and handler logic.
 title, heading, and editable placeholder content.
 
 `make:shard Revenue` creates `Components/Shards/RevenueShard.razor` with a
-target ID, `data-anvil-shard` URL, loading marker, and child content.
+target ID, `data-anvil-shard` URL, loading marker, child content, and
+`Endpoints/RevenueShardEndpoints.cs` with the matching
+`/api/revenue/shard` server endpoint. The endpoint is added to `Program.cs`.
 
 `make resource Customer` creates a tenant-owned model and resource boundary.
 `make crud Customer` adds model, endpoint, list, edit, and details Razor files.

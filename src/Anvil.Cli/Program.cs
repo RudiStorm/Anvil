@@ -143,6 +143,7 @@ internal static class AnvilCli
         WriteFile(projectDirectory, "compose.yaml", ComposeFile(namespaceName));
         WriteFile(projectDirectory, "DEPLOYMENT.md", DeploymentFile());
         WriteFile(projectDirectory, "appsettings.Production.json", ProductionSettingsFile());
+        WriteGeneratedManifests(projectDirectory);
 
         Console.WriteLine($"Created Anvil app at {projectDirectory}");
         Console.WriteLine($"  profile: {profile}");
@@ -401,8 +402,16 @@ internal static class AnvilCli
 
     private static int ScaffoldShard(string name, bool force)
     {
-        var path = Path.Combine(Directory.GetCurrentDirectory(), "Components", "Shards", name + "Shard.razor");
-        return WriteScaffold(path, ShardFile(name), force);
+        var root = Directory.GetCurrentDirectory();
+        var path = Path.Combine(root, "Components", "Shards", name + "Shard.razor");
+        var endpointPath = Path.Combine(root, "Endpoints", name + "ShardEndpoints.cs");
+        var result = WriteScaffold(path, ShardFile(name), force);
+        if (result != 0) return result;
+
+        result = WriteScaffold(endpointPath, ShardEndpointFile(name, ApplicationNamespace()), force);
+        if (result != 0) return result;
+        EnsureEndpointMapped(name + "Shard");
+        return 0;
     }
 
     private static int ScaffoldCrud(string name, bool force)
@@ -469,8 +478,19 @@ internal static class AnvilCli
 
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         File.WriteAllText(path, content, Encoding.UTF8);
+        WriteGeneratedManifests(Directory.GetCurrentDirectory());
         Console.WriteLine($"Created {path}");
         return 0;
+    }
+
+    private static void WriteGeneratedManifests(string root)
+    {
+        var routes = BuildRouteManifest(root);
+        var contract = BuildContractManifest(root, routes);
+        var directory = Path.Combine(root, "obj", "anvil");
+        Directory.CreateDirectory(directory);
+        File.WriteAllText(Path.Combine(directory, "routes.json"), JsonSerializer.Serialize(routes, new JsonSerializerOptions { WriteIndented = true }) + Environment.NewLine, Encoding.UTF8);
+        File.WriteAllText(Path.Combine(directory, "endpoint-manifest.json"), JsonSerializer.Serialize(contract, new JsonSerializerOptions { WriteIndented = true }) + Environment.NewLine, Encoding.UTF8);
     }
 
     private static int InvalidMakeKind()
@@ -622,7 +642,10 @@ internal static class AnvilCli
         Result(sourceText.Contains("AddAnvilSmtpMail", StringComparison.Ordinal) || sourceText.Contains("AddAnvilFileMail", StringComparison.Ordinal) || sourceText.Contains("AddAnvilMail", StringComparison.Ordinal)
             ? "PASS" : "WARNING", "Mail transport " + (sourceText.Contains("AddAnvil", StringComparison.Ordinal) && sourceText.Contains("Mail", StringComparison.Ordinal) ? "registration detected." : "not detected."));
         Result(sourceText.Contains("AddAnvilBackground", StringComparison.Ordinal) || File.Exists(Path.Combine(root, ".anvil", "jobs.json")) ? "PASS" : "WARNING", "Background jobs configuration inspected.");
-        Result(sourceText.Contains("OpenTelemetry", StringComparison.Ordinal) || sourceText.Contains("AddAnvilOpenTelemetry", StringComparison.Ordinal) ? "PASS" : "WARNING", "Observability configuration inspected.");
+        Result(sourceText.Contains("OpenTelemetry", StringComparison.Ordinal)
+            || sourceText.Contains("AddAnvilOpenTelemetry", StringComparison.Ordinal)
+            || sourceText.Contains("AddAnvilObservability", StringComparison.Ordinal)
+            ? "PASS" : "WARNING", "Observability configuration inspected.");
         if (File.Exists(Path.Combine(root, "Dockerfile")))
             Result(composeText.Contains("health/live", StringComparison.Ordinal) ? "PASS" : "WARNING", "Container health probe " + (composeText.Contains("health/live", StringComparison.Ordinal) ? "configured." : "not configured."));
         }
@@ -1131,6 +1154,24 @@ internal static class AnvilCli
         }
         """;
 
+    private static string ShardEndpointFile(string name, string namespaceName) => $$"""
+        using Anvil;
+        using {{namespaceName}}.Components.Shards;
+
+        public static class {{name}}ShardEndpoints
+        {
+            public static void Map{{name}}ShardEndpoints(this WebApplication app)
+            {
+                app.MapAnvilShard<Empty{{name}}ShardRequest, {{name}}Shard>(
+                    "/api/{{name.ToLowerInvariant()}}/shard",
+                    async (_, _) => await Task.FromResult<object?>(new { }),
+                    requireAuthentication: false);
+            }
+        }
+
+        public sealed record Empty{{name}}ShardRequest;
+        """;
+
     private static string CrudIndexFile(string name) => $$"""
         @attribute [Microsoft.AspNetCore.Authorization.Authorize]
         @page "/{{name.ToLowerInvariant()}}s"
@@ -1225,8 +1266,11 @@ internal static class AnvilCli
              options.AllowDevelopmentHeader = true;
          });
         builder.Services.AddAnvilAudit<AppDbContext>();
-        builder.Services.AddAnvilOpenApi();
-        {{(identity ? $"builder.Services.AddAnvilIdentity<{namespaceName}.Security.ApplicationUser, AppDbContext>();" : "")}}
+         builder.Services.AddAnvilOpenApi();
+         builder.Services.AddAnvilMail();
+         builder.Services.AddAnvilObservability();
+         builder.Services.AddAnvilBackgroundJobs();
+         {{(identity ? $"builder.Services.AddAnvilIdentity<{namespaceName}.Security.ApplicationUser, AppDbContext>();" : "")}}
 
         var app = builder.Build();
          app.UseAnvilProduction();

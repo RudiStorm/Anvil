@@ -24,6 +24,9 @@ public sealed class ReleaseAcceptanceTests
             var app = Path.Combine(workspace, "MyApp");
             await RunCli(cli, root, app, ["make", "resource", "Customer"]);
             await RunCli(cli, root, app, ["make", "crud", "Customer"]);
+            await RunCli(cli, root, app, ["make:page", "Reports"]);
+            await RunCli(cli, root, app, ["make:shard", "ReviewQueue"]);
+            Assert.True(File.Exists(Path.Combine(app, "Endpoints", "ReviewQueueShardEndpoints.cs")));
             await RunCli(cli, root, app, ["generate"]);
             await RunCli(cli, root, app, ["generate", "--check"]);
             await RunCli(cli, root, app, ["check"]);

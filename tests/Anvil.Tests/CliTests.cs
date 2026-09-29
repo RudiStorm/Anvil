@@ -147,9 +147,12 @@ public sealed class CliTests
 
             var page = await File.ReadAllTextAsync(Path.Combine(root, "Components", "Pages", "Reports.razor"));
             var shard = await File.ReadAllTextAsync(Path.Combine(root, "Components", "Shards", "RevenueShard.razor"));
+            var endpoint = await File.ReadAllTextAsync(Path.Combine(root, "Endpoints", "RevenueShardEndpoints.cs"));
             Assert.Contains("@page \"/reports\"", page);
             Assert.Contains("data-anvil-shard=\"/api/revenue/shard\"", shard);
             Assert.Contains("@ChildContent", shard);
+            Assert.Contains("MapRevenueShardEndpoints", endpoint);
+            Assert.Contains("MapAnvilShard", endpoint);
         }
         finally
         {
