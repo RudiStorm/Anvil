@@ -3,7 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Anvil\Anvil.csproj" />
     <ProjectReference Include="..\..\src\Anvil.Razor\Anvil.Razor.csproj" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.1" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.12" />
   </ItemGroup>
 
   <PropertyGroup>

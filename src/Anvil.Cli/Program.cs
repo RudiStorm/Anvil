@@ -149,6 +149,7 @@ internal static class AnvilCli
         Console.WriteLine($"  database: {database.ToString().ToLowerInvariant()}");
         if (packageSource is not null) Console.WriteLine($"  package source: {packageSource}");
         Console.WriteLine($"  cd {projectDirectory}");
+        Console.WriteLine($"  dotnet ef migrations add InitialCreate --project {namespaceName}.csproj");
         Console.WriteLine("  anvil dev");
         return 0;
     }
@@ -591,7 +592,13 @@ internal static class AnvilCli
             Result(productionText.Contains("Password", StringComparison.OrdinalIgnoreCase) || productionText.Contains("Secret", StringComparison.OrdinalIgnoreCase) || productionText.Contains("Token", StringComparison.OrdinalIgnoreCase) ? "BLOCKING" : "PASS", "Production settings do not contain obvious secret values.", productionText.Contains("Password", StringComparison.OrdinalIgnoreCase) || productionText.Contains("Secret", StringComparison.OrdinalIgnoreCase) || productionText.Contains("Token", StringComparison.OrdinalIgnoreCase));
         Result(File.Exists(Path.Combine(root, "DEPLOYMENT.md")) ? "PASS" : "WARNING", "Deployment guidance " + (File.Exists(Path.Combine(root, "DEPLOYMENT.md")) ? "found." : "not found."));
         Result(projectText.Contains("net10.0", StringComparison.OrdinalIgnoreCase) ? "PASS" : "WARNING", "Target framework metadata inspected.");
-        Result(sourceText.Contains("AddAnvilPersistence", StringComparison.Ordinal) ? "PASS" : "WARNING", "Persistence registration " + (sourceText.Contains("AddAnvilPersistence", StringComparison.Ordinal) ? "detected." : "not detected."));
+        var persistenceConfigured = sourceText.Contains("AnvilPersistence", StringComparison.Ordinal)
+            || sourceText.Contains("AddDbContext", StringComparison.Ordinal)
+            || sourceText.Contains("UseSqlite", StringComparison.Ordinal)
+            || sourceText.Contains("UseSqlServer", StringComparison.Ordinal)
+            || sourceText.Contains("UseNpgsql", StringComparison.Ordinal)
+            || sourceText.Contains("UseMySql", StringComparison.Ordinal);
+        Result(persistenceConfigured ? "PASS" : "WARNING", "Persistence registration " + (persistenceConfigured ? "detected." : "not detected."));
 
         if (providerName is not null && TryParseProvider(providerName, out var requestedProvider))
         {
@@ -853,15 +860,45 @@ internal static class AnvilCli
     private static int PrintRoutes()
     {
         var root = Directory.GetCurrentDirectory();
-        var routes = Directory.Exists(root)
-            ? Directory.EnumerateFiles(root, "*.razor", SearchOption.AllDirectories)
-                .SelectMany(file => File.ReadLines(file)
+        var routes = new List<(string File, string Route)>();
+        if (Directory.Exists(root))
+        {
+            foreach (var file in Directory.EnumerateFiles(root, "*.razor", SearchOption.AllDirectories)
+                         .Where(file => !file.Contains(Path.DirectorySeparatorChar + "obj" + Path.DirectorySeparatorChar)
+                             && !file.Contains(Path.DirectorySeparatorChar + "bin" + Path.DirectorySeparatorChar)))
+            {
+                routes.AddRange(File.ReadLines(file)
                     .Where(line => line.TrimStart().StartsWith("@page ", StringComparison.Ordinal))
-                    .Select(line => (File: Path.GetRelativePath(root, file), Route: line.Trim()[6..].Trim().Trim('"'))))
-                .ToArray()
-            : [];
+                    .Select(line => (Path.GetRelativePath(root, file), line.Trim()[6..].Trim().Trim('"'))));
+            }
 
-        if (routes.Length == 0)
+            var endpointPattern = new Regex("(?:app|endpoints)\\.Map(?:Anvil)?(?:Get|Post|Put|Patch|Delete|Sse|WebSocket|Sitemap|OpenApi|Manifest|HealthChecks|Readiness|Fragment(?:Get|Post))(?:<[^>]+>)?\\(\\\"([^\\\"]+)", RegexOptions.CultureInvariant);
+            foreach (var file in Directory.EnumerateFiles(root, "*.cs", SearchOption.AllDirectories)
+                         .Where(file => !file.Contains(Path.DirectorySeparatorChar + "obj" + Path.DirectorySeparatorChar)
+                             && !file.Contains(Path.DirectorySeparatorChar + "bin" + Path.DirectorySeparatorChar)))
+            {
+                var source = File.ReadAllText(file);
+                foreach (Match match in endpointPattern.Matches(source))
+                    routes.Add((Path.GetRelativePath(root, file), match.Groups[1].Value));
+
+                var relative = Path.GetRelativePath(root, file);
+                if (source.Contains("MapAnvilOpenApi", StringComparison.Ordinal)) routes.Add((relative, "/openapi.json"));
+                if (source.Contains("MapAnvilManifest", StringComparison.Ordinal)) routes.Add((relative, "/anvil.contract.json"));
+                if (source.Contains("MapAnvilHealthChecks", StringComparison.Ordinal))
+                {
+                    routes.Add((relative, "/health/live"));
+                    routes.Add((relative, "/health/ready"));
+                }
+                if (source.Contains("MapAnvilReadiness", StringComparison.Ordinal))
+                    routes.Add((relative, "/health/ready"));
+                if (source.Contains("MapAnvilIdentityEndpoints", StringComparison.Ordinal))
+                {
+                    routes.AddRange(new[] { "/account/login", "/account/logout", "/account/register", "/account/me" }.Select(path => (relative, path)));
+                }
+            }
+        }
+
+        if (routes.Count == 0)
         {
             Console.WriteLine("No Razor page routes found.");
             return 0;
@@ -1139,8 +1176,9 @@ internal static class AnvilCli
             <ImplicitUsings>enable</ImplicitUsings>
           </PropertyGroup>
           <ItemGroup>
-            <PackageReference Include="{{database.GetPackageId()}}" Version="10.0.1" />
-            <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.1">
+            <PackageReference Include="{{database.GetPackageId()}}" Version="10.0.12" />
+            {{(database == AnvilDatabaseProvider.Sqlite ? "<PackageReference Include=\"SQLitePCLRaw.bundle_e_sqlite3\" Version=\"3.0.5\" />\n    <PackageReference Include=\"SQLitePCLRaw.provider.e_sqlite3\" Version=\"3.0.5\" />\n    <PackageReference Include=\"SQLitePCLRaw.core\" Version=\"3.0.5\" />\n    <PackageReference Include=\"SQLitePCLRaw.lib.e_sqlite3\" Version=\"3.53.3\" />" : "")}}
+            <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.12">
               <PrivateAssets>all</PrivateAssets>
               <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
             </PackageReference>
@@ -1180,7 +1218,12 @@ internal static class AnvilCli
          builder.Services.AddAnvil{{registration}}Persistence<AppDbContext>(
              builder.Configuration,
              (options, connectionString) => {{configuration}});
-        builder.Services.AddAnvilTenancy(options => options.AllowDevelopmentHeader = true);
+         builder.Services.AddAnvilTenancy(options =>
+         {
+             // Development requests may omit a tenant. Require a tenant claim or header in production.
+             options.Required = false;
+             options.AllowDevelopmentHeader = true;
+         });
         builder.Services.AddAnvilAudit<AppDbContext>();
         builder.Services.AddAnvilOpenApi();
         {{(identity ? $"builder.Services.AddAnvilIdentity<{namespaceName}.Security.ApplicationUser, AppDbContext>();" : "")}}

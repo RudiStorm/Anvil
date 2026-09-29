@@ -53,6 +53,37 @@ public sealed class CliTests
     }
 
     [Fact]
+    public async Task Routes_command_includes_operational_endpoints()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "anvil-routes", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        await File.WriteAllTextAsync(Path.Combine(root, "Program.cs"), "app.MapAnvilOpenApi(); app.MapAnvilManifest(); app.MapAnvilHealthChecks(); app.MapAnvilFragmentGet<Rows>(\"/rows\", _ => new { });");
+        var originalDirectory = Directory.GetCurrentDirectory();
+        var originalOutput = Console.Out;
+        using var output = new StringWriter();
+
+        try
+        {
+            Directory.SetCurrentDirectory(root);
+            Console.SetOut(output);
+            Assert.Equal(0, await AnvilCli.RunAsync(["routes"]));
+        }
+        finally
+        {
+            Console.SetOut(originalOutput);
+            Directory.SetCurrentDirectory(originalDirectory);
+            Directory.Delete(root, recursive: true);
+        }
+
+        var routes = output.ToString();
+        Assert.Contains("/openapi.json", routes);
+        Assert.Contains("/anvil.contract.json", routes);
+        Assert.Contains("/health/live", routes);
+        Assert.Contains("/health/ready", routes);
+        Assert.Contains("/rows", routes);
+    }
+
+    [Fact]
     public async Task Generate_writes_a_deterministic_manifest_and_detects_stale_routes()
     {
         var root = Path.Combine(Path.GetTempPath(), "anvil-generate", Guid.NewGuid().ToString("N"));
@@ -240,6 +271,7 @@ public sealed class CliTests
             Assert.Contains("AddAnvilIdentity<Portal.Security.ApplicationUser, AppDbContext>", program);
             Assert.Contains("UseAuthentication", program);
             Assert.Contains("AddAnvilTenancy", program);
+            Assert.Contains("options.Required = false", program);
             Assert.Contains("AddAnvilAudit<AppDbContext>", program);
             Assert.Contains("MapAnvilOpenApi", program);
             Assert.Contains("IdentityDbContext<ApplicationUser>", context);
