@@ -1310,9 +1310,11 @@ internal static class AnvilCli
          });
         builder.Services.AddAnvilAudit<AppDbContext>();
          builder.Services.AddAnvilOpenApi();
-         builder.Services.AddAnvilMail();
-         builder.Services.AddAnvilObservability();
-         builder.Services.AddAnvilBackgroundJobs();
+          builder.Services.AddAnvilMail();
+          builder.Services.AddAnvilObservability();
+          builder.Services.AddAnvilBackgroundJobs();
+          builder.Services.AddAnvilScheduling();
+          builder.Services.AddAnvilTransactionalOutbox<AppDbContext>();
          {{(identity ? $"builder.Services.AddAnvilIdentity<{namespaceName}.Security.ApplicationUser, AppDbContext>();" : "")}}
 
         var app = builder.Build();

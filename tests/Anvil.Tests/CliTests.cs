@@ -280,6 +280,9 @@ public sealed class CliTests
             Assert.Contains("options.Required = false", program);
             Assert.Contains("AddAnvilAudit<AppDbContext>", program);
             Assert.Contains("MapAnvilOpenApi", program);
+            Assert.Contains("AddAnvilBackgroundJobs", program);
+            Assert.Contains("AddAnvilScheduling", program);
+            Assert.Contains("AddAnvilTransactionalOutbox<AppDbContext>", program);
             Assert.Contains("IdentityDbContext<ApplicationUser>", context);
             Assert.True(File.Exists(Path.Combine(app, "Security", "ApplicationUser.cs")));
             Assert.Contains("identity", await File.ReadAllTextAsync(Path.Combine(app, ".anvil", "profile.json")));
