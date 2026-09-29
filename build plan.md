@@ -573,6 +573,14 @@ Vue, Vite, or a separate frontend application mandatory.
 - Resource, endpoint, and CRUD scaffolding.
 - Production diagnostics, Docker/Compose generation, migration commands, and clean-machine release verification.
 
+### Zero-Boilerplate Default
+
+- `anvil new` defaults to the Identity profile. [x]
+- Generated applications include EF Core, Identity, audit, tenancy, jobs, mail, observability, OpenAPI, health checks, and production configuration. [x]
+- `anvil new` restores packages, restores the pinned EF tool, creates the initial migration, generates manifests, and builds before reporting success. [x]
+- `--profile default` and `--no-restore` remain explicit opt-outs for minimal or offline generation. [x]
+- A generated application can run without manually adding Identity, audit, persistence, or endpoint-registration boilerplate. [x]
+
 ### Phase 1: Endpoint Contract Foundation
 
 - Replace the lightweight manual `AnvilApiRegistry` as the sole contract source with a canonical endpoint manifest. [x]

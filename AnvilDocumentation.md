@@ -86,16 +86,18 @@ app.MapAnvil<Components.App>();
 app.Run();
 ```
 
-Use `--profile identity` to generate Identity, EF Core, tenancy, audit, and
-production boundaries. Use `--database sqlite|sqlserver|postgresql|mysql` to
-select the persistence provider.
+`anvil new` defaults to the identity profile, so the generated application has
+Identity, EF Core, tenancy, audit, jobs, mail, observability, and production
+boundaries immediately. Use `--profile default` for the deliberately minimal
+profile. Use `--database sqlite|sqlserver|postgresql|mysql` to select the
+persistence provider.
 
 ## CLI Reference
 
 ### Application Commands
 
 ```text
-anvil new <Name> [--profile default|identity] [--database <provider>] [--package-source <directory>]
+anvil new <Name> [--profile default|identity] [--database <provider>] [--package-source <directory>] [--no-restore]
 anvil dev [--project <path>]
 anvil run [--project <path>]
 anvil build
@@ -147,6 +149,10 @@ target ID, `data-anvil-shard` URL, loading marker, child content, and
 
 `make resource Customer` creates a tenant-owned model and resource boundary.
 `make crud Customer` adds model, endpoint, list, edit, and details Razor files.
+
+`anvil new` restores packages, restores the pinned EF tool, creates the initial
+EF migration, generates route/endpoint manifests, and builds the project before
+reporting success. Use `--no-restore` only for offline file generation.
 
 `anvil generate` creates deterministic route and endpoint manifests under
 `obj/anvil`. `anvil generate --check` fails when generated metadata is stale.

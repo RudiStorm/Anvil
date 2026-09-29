@@ -74,6 +74,11 @@ anvil new Portal --package-source D:\dev-tools-path\packages
 the application. Generated projects use source references when created from
 this repository and package references when created elsewhere.
 
+`anvil new` defaults to the Identity profile and initializes the EF tool,
+initial migration, generated manifests, and first build automatically. Use
+`--profile default` for the minimal profile or `--no-restore` for offline file
+generation.
+
 ## Request context
 
 Inject `RequestContext` when a handler or service needs the current request:

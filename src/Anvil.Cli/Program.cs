@@ -29,7 +29,7 @@ internal static class AnvilCli
 
         return args[0].ToLowerInvariant() switch
         {
-            "new" => CreateProject(args[1..]),
+            "new" => await CreateProject(args[1..]),
             "dev" => await RunDevelopmentServerAsync(args[1..]),
             "run" => await RunDevelopmentServerAsync(args[1..]),
             "ui" => ManageUi(args[1..]),
@@ -55,11 +55,11 @@ internal static class AnvilCli
         };
     }
 
-    private static int CreateProject(string[] args)
+    private static async Task<int> CreateProject(string[] args)
     {
         if (args.Length == 0 || IsHelp(args[0]))
         {
-            Console.WriteLine("Usage: anvil new <name> [--output <directory>] [--profile default|identity] [--database sqlite|sqlserver|postgresql|mysql] [--package-source <directory>] [--force]");
+            Console.WriteLine("Usage: anvil new <name> [--output <directory>] [--profile default|identity] [--database sqlite|sqlserver|postgresql|mysql] [--package-source <directory>] [--no-restore] [--force]");
             return args.Length == 0 ? 1 : 0;
         }
 
@@ -72,9 +72,10 @@ internal static class AnvilCli
 
         var output = Directory.GetCurrentDirectory();
         var force = false;
-        var profile = "default";
+        var profile = "identity";
         var database = AnvilDatabaseProvider.Sqlite;
         string? packageSource = null;
+        var noRestore = false;
 
         for (var index = 1; index < args.Length; index++)
         {
@@ -103,6 +104,9 @@ internal static class AnvilCli
                     break;
                 case "--package-source" when index + 1 < args.Length:
                     packageSource = Path.GetFullPath(args[++index]);
+                    break;
+                case "--no-restore":
+                    noRestore = true;
                     break;
                 default:
                     Console.Error.WriteLine($"Unknown option: {args[index]}");
@@ -146,13 +150,28 @@ internal static class AnvilCli
         WriteFile(projectDirectory, "appsettings.Production.json", ProductionSettingsFile());
         WriteGeneratedManifests(projectDirectory);
 
+        if (!noRestore)
+        {
+            if (await RunProjectProcessAsync(projectDirectory, "restore", namespaceName + ".csproj") != 0
+                || await RunProjectProcessAsync(projectDirectory, "tool", "restore") != 0
+                || await RunProjectProcessAsync(projectDirectory, "ef", "migrations", "add", "InitialCreate", "--project", namespaceName + ".csproj") != 0
+                || await RunProjectProcessAsync(projectDirectory, "build", namespaceName + ".csproj", "--no-restore") != 0)
+            {
+                Console.Error.WriteLine("Project initialization failed. Use --no-restore to generate files without initialization.");
+                return 1;
+            }
+        }
+
         Console.WriteLine($"Created Anvil app at {projectDirectory}");
         Console.WriteLine($"  profile: {profile}");
         Console.WriteLine($"  database: {database.ToString().ToLowerInvariant()}");
         if (packageSource is not null) Console.WriteLine($"  package source: {packageSource}");
         Console.WriteLine($"  cd {projectDirectory}");
-        Console.WriteLine($"  dotnet ef migrations add InitialCreate --project {namespaceName}.csproj");
-        Console.WriteLine("  dotnet tool restore");
+        if (noRestore)
+        {
+            Console.WriteLine($"  dotnet tool restore");
+            Console.WriteLine($"  dotnet ef migrations add InitialCreate --project {namespaceName}.csproj");
+        }
         Console.WriteLine("  anvil dev");
         return 0;
     }
@@ -873,6 +892,28 @@ internal static class AnvilCli
         return process.ExitCode;
     }
 
+    private static async Task<int> RunProjectProcessAsync(string workingDirectory, string command, params string[] args)
+    {
+        var startInfo = new ProcessStartInfo("dotnet")
+        {
+            WorkingDirectory = workingDirectory,
+            UseShellExecute = false
+        };
+        startInfo.ArgumentList.Add(command);
+        foreach (var argument in args)
+            startInfo.ArgumentList.Add(argument);
+
+        using var process = Process.Start(startInfo);
+        if (process is null)
+        {
+            Console.Error.WriteLine($"Unable to start dotnet {command}.");
+            return 1;
+        }
+
+        await process.WaitForExitAsync();
+        return process.ExitCode;
+    }
+
     private static bool ContainsOutputOption(string[] args)
     {
         return args.Any(argument =>
@@ -1036,7 +1077,7 @@ internal static class AnvilCli
         Console.WriteLine("Options:");
         Console.WriteLine("  anvil --version");
         Console.WriteLine("  anvil dev --project <path>");
-        Console.WriteLine("  anvil new <name> --output <directory> [--profile default|identity] [--database sqlite|sqlserver|postgresql|mysql] [--package-source <directory>] [--force]");
+        Console.WriteLine("  anvil new <name> --output <directory> [--profile default|identity] [--database sqlite|sqlserver|postgresql|mysql] [--package-source <directory>] [--no-restore] [--force]");
         Console.WriteLine("  anvil make resource|endpoint|page|shard|crud <Name> [--force]");
         Console.WriteLine("  anvil make:page <Name> [--force]");
         Console.WriteLine("  anvil make:shard <Name> [--force]");

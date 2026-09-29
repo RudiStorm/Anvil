@@ -192,11 +192,12 @@ public sealed class CliTests
         try
         {
             Directory.SetCurrentDirectory(root);
-            Assert.Equal(0, await AnvilCli.RunAsync(["new", "Store"]));
+            Assert.Equal(0, await AnvilCli.RunAsync(["new", "Store", "--no-restore"]));
             var project = Path.Combine(root, "Store", "Store.csproj");
             var program = await File.ReadAllTextAsync(Path.Combine(root, "Store", "Program.cs"));
             Assert.Contains("Microsoft.EntityFrameworkCore.Sqlite", await File.ReadAllTextAsync(project));
             Assert.Contains("AddAnvilSqlitePersistence<AppDbContext>", program);
+            Assert.Contains("AddAnvilIdentity<Store.Security.ApplicationUser, AppDbContext>", program);
             Assert.True(File.Exists(Path.Combine(root, "Store", "Data", "AppDbContext.cs")));
             Assert.True(File.Exists(Path.Combine(root, "Store", "appsettings.json")));
             Assert.Contains("dotnet-ef", await File.ReadAllTextAsync(Path.Combine(root, "Store", ".config", "dotnet-tools.json")));
@@ -222,7 +223,7 @@ public sealed class CliTests
         try
         {
             Directory.SetCurrentDirectory(root);
-            Assert.Equal(0, await AnvilCli.RunAsync(["new", "Store", "--database", provider]));
+            Assert.Equal(0, await AnvilCli.RunAsync(["new", "Store", "--database", provider, "--no-restore"]));
             var app = Path.Combine(root, "Store");
             Assert.Contains(package, await File.ReadAllTextAsync(Path.Combine(app, "Store.csproj")));
             var program = await File.ReadAllTextAsync(Path.Combine(app, "Program.cs"));
@@ -246,7 +247,7 @@ public sealed class CliTests
         try
         {
             Directory.SetCurrentDirectory(root);
-            Assert.Equal(0, await AnvilCli.RunAsync(["new", "PackageApp", "--package-source", "D:\\dev-tools-path\\packages"]));
+            Assert.Equal(0, await AnvilCli.RunAsync(["new", "PackageApp", "--package-source", "D:\\dev-tools-path\\packages", "--no-restore"]));
             var config = await File.ReadAllTextAsync(Path.Combine(root, "PackageApp", "NuGet.config"));
             Assert.Contains("D:\\dev-tools-path\\packages", config);
             Assert.Contains("Anvil.Razor", await File.ReadAllTextAsync(Path.Combine(root, "PackageApp", "PackageApp.csproj")));
@@ -268,7 +269,7 @@ public sealed class CliTests
         try
         {
             Directory.SetCurrentDirectory(root);
-            Assert.Equal(0, await AnvilCli.RunAsync(["new", "Portal", "--profile", "identity"]));
+            Assert.Equal(0, await AnvilCli.RunAsync(["new", "Portal", "--profile", "identity", "--no-restore"]));
             var app = Path.Combine(root, "Portal");
             var program = await File.ReadAllTextAsync(Path.Combine(app, "Program.cs"));
             var context = await File.ReadAllTextAsync(Path.Combine(app, "Data", "AppDbContext.cs"));

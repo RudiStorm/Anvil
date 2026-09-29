@@ -30,9 +30,6 @@ public sealed class ReleaseAcceptanceTests
             await RunCli(cli, root, app, ["generate"]);
             await RunCli(cli, root, app, ["generate", "--check"]);
             await RunCli(cli, root, app, ["check"]);
-            await RunProcess("dotnet", ["restore", Path.Combine(app, "MyApp.csproj")], app);
-            await RunProcess("dotnet", ["tool", "restore"], app);
-            await RunProcess("dotnet", ["ef", "migrations", "add", "InitialCreate", "--project", Path.Combine(app, "MyApp.csproj")], app);
             await RunProcess("dotnet", ["build", Path.Combine(app, "MyApp.csproj")], app);
             await RunCli(cli, root, app, ["doctor", "--production"]);
 
