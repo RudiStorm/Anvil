@@ -164,6 +164,7 @@ internal static class AnvilCli
 
         Console.WriteLine($"Created Anvil app at {projectDirectory}");
         Console.WriteLine($"  profile: {profile}");
+        Console.WriteLine($"  authentication: {(profile == "identity" ? "enabled" : "disabled")}");
         Console.WriteLine($"  database: {database.ToString().ToLowerInvariant()}");
         if (packageSource is not null) Console.WriteLine($"  package source: {packageSource}");
         Console.WriteLine($"  cd {projectDirectory}");

@@ -198,6 +198,9 @@ public sealed class CliTests
             Assert.Contains("Microsoft.EntityFrameworkCore.Sqlite", await File.ReadAllTextAsync(project));
             Assert.Contains("AddAnvilSqlitePersistence<AppDbContext>", program);
             Assert.Contains("AddAnvilIdentity<Store.Security.ApplicationUser, AppDbContext>", program);
+            Assert.Contains("UseAuthentication", program);
+            Assert.Contains("UseAuthorization", program);
+            Assert.Contains("MapAnvilIdentityEndpoints<Store.Security.ApplicationUser>", program);
             Assert.True(File.Exists(Path.Combine(root, "Store", "Data", "AppDbContext.cs")));
             Assert.True(File.Exists(Path.Combine(root, "Store", "appsettings.json")));
             Assert.Contains("dotnet-ef", await File.ReadAllTextAsync(Path.Combine(root, "Store", ".config", "dotnet-tools.json")));
