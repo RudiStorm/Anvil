@@ -725,3 +725,4 @@ free and open-source editable source archives for Anvil templates and providers.
 - Public package API and CLI template consumption. [ ]
 
 - Store sign-in, registration, logout, browser redirects, and authenticated account navigation. [x]
+- Protected Store dashboard route with catalog summary and authenticated workspace links. [x]
