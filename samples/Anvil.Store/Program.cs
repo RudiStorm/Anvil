@@ -14,6 +14,11 @@ builder.Services.AddDataProtection()
 builder.Services.AddAnvil();
 builder.Services.AddAnvilOpenApi();
 builder.Services.AddAnvilReadiness();
+builder.Services.Configure<AnvilIdentityOptions>(options =>
+{
+    options.LoginPath = "/account/login/submit";
+    options.RegisterPath = "/account/register/submit";
+});
 builder.Services.AddAnvilSqlitePersistence<StoreDbContext>(
     builder.Configuration,
     (options, connectionString) => options.UseSqlite(connectionString));
@@ -21,6 +26,16 @@ builder.Services.AddAnvilIdentity<StoreUser, StoreDbContext>(identity =>
 {
     identity.User.RequireUniqueEmail = true;
     identity.SignIn.RequireConfirmedEmail = false;
+}, cookie =>
+{
+    cookie.Events.OnRedirectToLogin = context =>
+    {
+        if (context.Request.Path.StartsWithSegments("/api"))
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+        else
+            context.Response.Redirect("/account/login");
+        return Task.CompletedTask;
+    };
 });
 builder.Services.AddAnvilIdentityContracts();
 builder.Services.AddAnvilAudit<StoreDbContext>();

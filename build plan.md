@@ -724,3 +724,4 @@ free and open-source editable source archives for Anvil templates and providers.
 - Full browser, accessibility, upload-security, authorization, and production verification suite. [ ]
 - Public package API and CLI template consumption. [ ]
 
+- Store sign-in, registration, logout, browser redirects, and authenticated account navigation. [x]
