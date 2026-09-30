@@ -185,6 +185,25 @@ app.MapPost("/api/admin/releases/{id:int}/reject", async (int id, RequestContext
     return Results.Redirect("/admin/submissions");
 }).RequireAuthorization(policy => policy.RequireRole("Moderator", "Administrator"));
 
+app.MapPost("/api/admin/users/{id}/role", async (string id, RequestContext context, UserManager<StoreUser> users) =>
+{
+    var user = await users.FindByIdAsync(id);
+    if (user is null)
+        return Results.NotFound();
+    var role = context.ReadFormValue("Role")?.Trim();
+    if (role is not ("User" or "Creator" or "Moderator" or "Administrator"))
+        return Results.BadRequest(new { error = "Unknown role." });
+
+    var currentRoles = await users.GetRolesAsync(user);
+    var removableRoles = currentRoles.Where(x => x is "User" or "Creator" or "Moderator" or "Administrator").ToArray();
+    if (removableRoles.Length > 0)
+        await users.RemoveFromRolesAsync(user, removableRoles);
+    await users.AddToRoleAsync(user, role);
+    user.IsCreator = role is "Creator" or "Moderator" or "Administrator";
+    await users.UpdateAsync(user);
+    return Results.Redirect("/admin");
+}).RequireAuthorization(policy => policy.RequireRole("Administrator"));
+
 app.MapPost("/api/listings/{id:int}/favorite", async (int id, HttpContext context, StoreDbContext db) =>
 {
     var userId = context.User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -264,7 +283,10 @@ public static class StoreSeed
         }
 
         if (await db.Listings.AnyAsync())
+        {
+            await PromoteFirstRealUserAsync(userManager, db);
             return;
+        }
 
         var admin = await userManager.FindByEmailAsync("admin@anvil.store");
         if (admin is null)
@@ -297,5 +319,33 @@ public static class StoreSeed
         };
         db.Listings.Add(listing);
         await db.SaveChangesAsync();
+        await PromoteFirstRealUserAsync(userManager, db);
     }
+
+    private static async Task PromoteFirstRealUserAsync(UserManager<StoreUser> userManager, StoreDbContext db)
+    {
+        var firstUser = await db.Users
+            .Where(x => x.Email != "admin@anvil.store")
+            .OrderBy(x => x.Id)
+            .FirstOrDefaultAsync();
+        if (firstUser is null || await userManager.IsInRoleAsync(firstUser, "Administrator"))
+            return;
+
+        await userManager.AddToRoleAsync(firstUser, "Administrator");
+        firstUser.IsCreator = true;
+        await userManager.UpdateAsync(firstUser);
+        if (!await db.CreatorProfiles.AnyAsync(x => x.UserId == firstUser.Id))
+        {
+            db.CreatorProfiles.Add(new CreatorProfile
+            {
+                UserId = firstUser.Id,
+                Slug = CreatorSlug(firstUser.UserName ?? firstUser.Email ?? firstUser.Id),
+                DisplayName = firstUser.DisplayName ?? firstUser.UserName ?? firstUser.Email ?? "Anvil administrator",
+                Bio = "An Anvil Store administrator and creator."
+            });
+            await db.SaveChangesAsync();
+        }
+    }
+
+    private static string CreatorSlug(string value) => string.Join('-', value.ToLowerInvariant().Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)).Replace("/", "-");
 }

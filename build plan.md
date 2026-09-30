@@ -729,3 +729,6 @@ free and open-source editable source archives for Anvil templates and providers.
 - Public creator landing page with protected creator submission actions. [x]
 - Copyable future CLI installation commands displayed on template and provider listings; CLI implementation remains deferred. [x]
 - Any authenticated user can begin creator onboarding; first upload creates the creator profile and role. [x]
+- First non-seeded registered account bootstrap and administrator dashboard navigation. [x]
+- Administrator catalog and user management workflows. [x]
+- Replace SQLite with a production relational provider before public launch. [ ]
