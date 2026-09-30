@@ -17,7 +17,7 @@ public sealed class MalwareScannerOptions
     public bool Enabled { get; set; } = true;
     public string Host { get; set; } = "localhost";
     public int Port { get; set; } = 3310;
-    public bool Required { get; set; }
+    public bool Required { get; set; } = true;
 }
 
 public sealed record PackageUploadResult(

@@ -47,7 +47,8 @@ builder.Services.AddAnvilBackgroundJobs();
 builder.Services.AddAnvilTransactionalOutbox<StoreDbContext>();
 builder.Services.AddAnvilObservability();
 var malwareScannerEnabled = builder.Configuration.GetValue("Store:MalwareScanner:Enabled", true);
-if (!malwareScannerEnabled || (builder.Environment.IsDevelopment() && !builder.Configuration.GetValue<bool>("Store:MalwareScanner:Required")))
+var malwareScannerRequired = builder.Configuration.GetValue("Store:MalwareScanner:Required", true);
+if (!malwareScannerEnabled || !malwareScannerRequired)
     builder.Services.AddSingleton<IMalwareScanner, DevelopmentMalwareScanner>();
 else
     builder.Services.AddSingleton<IMalwareScanner, ClamAvMalwareScanner>();
