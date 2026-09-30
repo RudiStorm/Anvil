@@ -704,3 +704,23 @@ The generated application must provide authenticated Razor pages, policy-based
 authorization, durable audit records, tenant-safe CRUD, server-side validation,
 partial HTML updates, OpenAPI metadata, and production diagnostics without a
 Vue frontend or a separate API project.
+## P6: Anvil Store Sample
+
+The Anvil Store is the first production-shaped marketplace sample. It distributes
+free and open-source editable source archives for Anvil templates and providers.
+
+- Store implementation plan and package contract documented in `agent-store-plan.md`. [x]
+- Single-tenant `samples/Anvil.Store` application foundation with SQLite persistence and Identity. [x]
+- Creator, moderator, administrator, and public storefront route boundaries. [x]
+- Constrained ZIP package manifest and archive validation boundary. [x]
+- Local quarantine, accepted, and published artifact storage boundary. [x]
+- ClamAV malware scanning adapter with explicit development-only scanner. [x]
+- Railway Dockerfile, non-root runtime entrypoint, persistent `/app/data` volume
+  layout, and health-check deployment configuration. [x]
+- Manual release review, approval, immutable artifact publication, and checksums. [x]
+- Public template/provider catalog, listing details, search, creator profiles, and sitemap. [x]
+- Authenticated download history, favorites, and eligible reviews. [ ]
+- Complete administration, moderation reports, notifications, and operations UI. [ ]
+- Full browser, accessibility, upload-security, authorization, and production verification suite. [ ]
+- Public package API and CLI template consumption. [ ]
+

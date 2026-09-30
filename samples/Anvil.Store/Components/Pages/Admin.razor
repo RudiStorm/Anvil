@@ -1,0 +1,11 @@
+@page "/admin"
+@page "/admin/submissions"
+@attribute [Authorize(Roles = "Moderator,Administrator")]
+@inject StoreDbContext Db
+
+<PageTitle>Moderation | Anvil Store</PageTitle>
+<section class="page-hero section-wrap"><div><p class="eyebrow">Operations / moderation</p><h1>Keep the<br /><em>collection trusted.</em></h1></div><p class="hero-copy">Every release is reviewed by a human after validation and malware scanning. Nothing becomes public by accident.</p></section>
+<section class="section-wrap admin-grid"><div class="metric-card"><span class="metric-label">Awaiting review</span><strong>@pendingCount</strong><small>clean uploads</small></div><div class="metric-card"><span class="metric-label">Published listings</span><strong>@publishedCount</strong><small>public packages</small></div><div class="metric-card"><span class="metric-label">Scanner status</span><strong class="positive">READY</strong><small>ClamAV boundary</small></div></section>
+<section class="section-wrap table-section"><div class="panel-heading"><div><p class="eyebrow">Review queue</p><h2>Submissions requiring a decision</h2></div></div><div class="table-wrap"><table><thead><tr><th>Package</th><th>Version</th><th>Scan</th><th>Submitted</th><th></th></tr></thead><tbody>@foreach(var release in releases){<tr><td><strong>@release.Listing?.Name</strong><small>@release.Listing?.PackageType</small></td><td>v@release.Version</td><td><span class="status-pill status-clean">@release.Artifact?.ScanStatus</span></td><td>@release.CreatedAt.ToString("yyyy-MM-dd")</td><td><form method="post" action="/api/admin/releases/@release.Id/approve"><AntiforgeryToken /><button class="button button-primary button-small" type="submit">Approve</button></form></td></tr>}</tbody></table></div></section>
+
+@code { private List<ListingVersion> releases = []; private int pendingCount; private int publishedCount; protected override async Task OnInitializedAsync(){ releases = await Db.ListingVersions.AsNoTracking().Include(x => x.Listing).Include(x => x.Artifact).Where(x => x.Status == ReleaseStatus.AwaitingReview).OrderBy(x => x.Id).ToListAsync(); pendingCount = releases.Count; publishedCount = await Db.Listings.CountAsync(x => x.Status == ListingStatus.Published); } }

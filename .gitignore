@@ -16,3 +16,9 @@ dev-tools-path/packages/
 .htmx-bundle-test/
 .release-acceptance-*/
 .test-*/
+
+# Sample application runtime state
+*.db
+*.db-shm
+*.db-wal
+store-storage/
