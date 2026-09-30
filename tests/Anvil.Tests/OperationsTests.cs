@@ -87,4 +87,30 @@ public sealed class OperationsTests
         Assert.Equal([1], await cache.GetAsync("a", "key"));
         Assert.Null(await cache.GetAsync("b", "key"));
     }
+
+    [Fact]
+    public async Task Typed_cache_round_trips_values_through_the_file_provider()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "anvil-cache-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var services = new ServiceCollection()
+                .AddAnvilCaching(options => options.Namespace = "typed")
+                .Configure<AnvilStorageOptions>(options => options.RootPath = root);
+            await using var provider = services.BuildServiceProvider();
+            var cache = provider.GetRequiredService<AnvilCache>();
+            await cache.SetAsync("public", "value", new CacheValue("hello", 3), new DistributedCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1)
+            });
+
+            Assert.Equal(new CacheValue("hello", 3), await cache.GetAsync<CacheValue>("public", "value"));
+        }
+        finally
+        {
+            if (Directory.Exists(root)) Directory.Delete(root, true);
+        }
+    }
+
+    private sealed record CacheValue(string Text, int Count);
 }

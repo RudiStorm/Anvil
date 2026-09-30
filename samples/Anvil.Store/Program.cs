@@ -9,11 +9,14 @@ using System.Security.Cryptography;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.Configure<Anvil.Store.StoreOptions>(builder.Configuration.GetSection("Store"));
+builder.Services.Configure<AnvilStorageOptions>(options => options.RootPath = Path.Combine(AppContext.BaseDirectory, "data"));
+builder.Services.Configure<AnvilCacheOptions>(options => options.Namespace = "store");
 builder.Services.AddDataProtection()
     .PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(AppContext.BaseDirectory, "data", "keys")));
 builder.Services.AddAnvil();
 builder.Services.AddAnvilOpenApi();
 builder.Services.AddAnvilReadiness();
+builder.Services.AddAnvilStoreMailcatcher(builder.Configuration);
 builder.Services.Configure<AnvilIdentityOptions>(options =>
 {
     options.LoginPath = "/account/login/submit";
@@ -43,11 +46,13 @@ builder.Services.AddAnvilCompliance();
 builder.Services.AddAnvilBackgroundJobs();
 builder.Services.AddAnvilTransactionalOutbox<StoreDbContext>();
 builder.Services.AddAnvilObservability();
-if (builder.Environment.IsDevelopment() && !builder.Configuration.GetValue<bool>("Store:MalwareScanner:Required"))
+var malwareScannerEnabled = builder.Configuration.GetValue("Store:MalwareScanner:Enabled", true);
+if (!malwareScannerEnabled || (builder.Environment.IsDevelopment() && !builder.Configuration.GetValue<bool>("Store:MalwareScanner:Required")))
     builder.Services.AddSingleton<IMalwareScanner, DevelopmentMalwareScanner>();
 else
     builder.Services.AddSingleton<IMalwareScanner, ClamAvMalwareScanner>();
 builder.Services.AddSingleton<IPackageStorage, LocalPackageStorage>();
+builder.Services.AddScoped<StoreCatalogReader>();
 
 var app = builder.Build();
 
@@ -150,7 +155,7 @@ app.MapPost("/api/creator/upload", async (RequestContext context, StoreDbContext
     return Results.Redirect("/creator/submissions");
 }).RequireAuthorization();
 
-app.MapPost("/api/admin/releases/{id:int}/approve", async (int id, RequestContext context, StoreDbContext db, IPackageStorage storage) =>
+app.MapPost("/api/admin/releases/{id:int}/approve", async (int id, RequestContext context, StoreDbContext db, IPackageStorage storage, AnvilCache cache) =>
 {
     var release = await db.ListingVersions.Include(x => x.Artifact).Include(x => x.Listing).SingleOrDefaultAsync(x => x.Id == id, context.RequestAborted);
     if (release?.Artifact is null || release.Listing is null || release.Artifact.ScanStatus != MalwareScanStatus.Clean)
@@ -170,6 +175,8 @@ app.MapPost("/api/admin/releases/{id:int}/approve", async (int id, RequestContex
         Note = "Approved by moderator."
     });
     await db.SaveChangesAsync(context.RequestAborted);
+    await cache.RemoveAsync("public", "catalog:template", context.RequestAborted);
+    await cache.RemoveAsync("public", "catalog:provider", context.RequestAborted);
     return Results.Redirect("/admin/submissions");
 }).RequireAuthorization(policy => policy.RequireRole("Moderator", "Administrator"));
 
@@ -202,6 +209,25 @@ app.MapPost("/api/admin/users/{id}/role", async (string id, RequestContext conte
     user.IsCreator = role is "Creator" or "Moderator" or "Administrator";
     await users.UpdateAsync(user);
     return Results.Redirect("/admin");
+}).RequireAuthorization(policy => policy.RequireRole("Administrator"));
+
+app.MapPost("/api/admin/mail/test", async (RequestContext context, AnvilMailer mailer) =>
+{
+    var form = await context.ReadFormAsync();
+    var recipient = form["To"].ToString().Trim();
+    try { _ = new System.Net.Mail.MailAddress(recipient); }
+    catch (FormatException)
+    {
+        return Results.BadRequest(new { error = "Enter a valid recipient address." });
+    }
+
+    await mailer.SendAsync(new AnvilMailMessage(
+        "noreply@anvil.store",
+        recipient,
+        "Anvil Store Mailcatcher test",
+        "<h1>Mailcatcher is connected</h1><p>This message was sent by the Anvil Store sample.</p>",
+        "Mailcatcher is connected. This message was sent by the Anvil Store sample."), context.RequestAborted);
+    return Results.Redirect("/admin/mail?sent=true");
 }).RequireAuthorization(policy => policy.RequireRole("Administrator"));
 
 app.MapPost("/api/listings/{id:int}/favorite", async (int id, HttpContext context, StoreDbContext db) =>
@@ -284,6 +310,7 @@ public static class StoreSeed
 
         if (await db.Listings.AnyAsync())
         {
+            await EnsureSeedProviderAsync(db);
             await PromoteFirstRealUserAsync(userManager, db);
             return;
         }
@@ -318,8 +345,45 @@ public static class StoreSeed
             Status = ListingStatus.Published
         };
         db.Listings.Add(listing);
+        db.Listings.Add(new StoreListing
+        {
+            Creator = creator,
+            Slug = "redis-cache",
+            Identifier = "anvil-team.redis-cache",
+            Name = "Anvil Redis Cache Provider",
+            PackageType = PackageType.Provider,
+            Summary = "An editable Redis-backed IDistributedCache provider for multi-instance Anvil deployments.",
+            Readme = "Install the provider source from the Store, add the standard Redis package, and register AddAnvilRedisCaching.",
+            License = "MIT",
+            SupportedAnvilVersions = ".NET 10 / Anvil 0.1",
+            Tags = "redis, caching, distributed, provider",
+            Status = ListingStatus.Published
+        });
         await db.SaveChangesAsync();
+        await EnsureSeedProviderAsync(db);
         await PromoteFirstRealUserAsync(userManager, db);
+    }
+
+    private static async Task EnsureSeedProviderAsync(StoreDbContext db)
+    {
+        if (await db.Listings.AnyAsync(x => x.Identifier == "anvil-team.redis-cache"))
+            return;
+        var creator = await db.CreatorProfiles.SingleAsync(x => x.Slug == "anvil-team");
+        db.Listings.Add(new StoreListing
+        {
+            CreatorProfileId = creator.Id,
+            Slug = "redis-cache",
+            Identifier = "anvil-team.redis-cache",
+            Name = "Anvil Redis Cache Provider",
+            PackageType = PackageType.Provider,
+            Summary = "An editable Redis-backed IDistributedCache provider for multi-instance Anvil deployments.",
+            Readme = "Install the provider source from the Store, add the standard Redis package, and register AddAnvilRedisCaching.",
+            License = "MIT",
+            SupportedAnvilVersions = ".NET 10 / Anvil 0.1",
+            Tags = "redis, caching, distributed, provider",
+            Status = ListingStatus.Published
+        });
+        await db.SaveChangesAsync();
     }
 
     private static async Task PromoteFirstRealUserAsync(UserManager<StoreUser> userManager, StoreDbContext db)

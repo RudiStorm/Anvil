@@ -12,7 +12,9 @@ public static class AnvilServiceCollectionExtensions
         services.AddRazorComponents();
         services.AddScoped<AnvilFragmentRenderer>();
         services.AddScoped<RequestContext>();
+        services.AddScoped<AnvilAuth>();
         services.AddScoped<AnvilRequestMemoizer>();
+        services.AddAnvilCaching();
         services.AddAnvilSessions();
         services.AddAnvilRouting();
         services.AddAnvilMail();
