@@ -23,7 +23,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        CanCreate = Request.HttpContext.User.IsInRole("Creator") || Request.HttpContext.User.IsInRole("Administrator");
+        CanCreate = Request.HttpContext.User.Identity?.IsAuthenticated == true;
         if (CanCreate)
             releases = await Db.ListingVersions.AsNoTracking().Include(x => x.Listing).OrderByDescending(x => x.Id).Take(20).ToListAsync();
     }

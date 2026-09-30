@@ -70,10 +70,13 @@ app.MapAnvilIdentityEndpoints<StoreUser>();
 
 app.MapAnvilGet("/api/health", _ => Task.FromResult<IResult>(Results.Ok(new { status = "ok" })), "store-health");
 
-app.MapPost("/api/creator/upload", async (RequestContext context, StoreDbContext db, IPackageStorage storage) =>
+app.MapPost("/api/creator/upload", async (RequestContext context, StoreDbContext db, IPackageStorage storage, UserManager<StoreUser> users) =>
 {
     var userId = context.HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
     if (userId is null)
+        return Results.Unauthorized();
+    var user = await users.FindByIdAsync(userId);
+    if (user is null)
         return Results.Unauthorized();
 
     var form = await context.ReadFormAsync();
@@ -81,14 +84,31 @@ app.MapPost("/api/creator/upload", async (RequestContext context, StoreDbContext
     if (file is null)
         return Results.BadRequest(new { error = "Choose a ZIP package." });
 
-    var profile = await db.CreatorProfiles.SingleOrDefaultAsync(x => x.UserId == userId, context.RequestAborted);
-    if (profile is null)
-        return Results.Forbid();
-
     var upload = await storage.ValidateAndQuarantineAsync(file.OpenReadStream(), file.FileName, context.RequestAborted);
     if (!upload.IsValid)
         return Results.BadRequest(new { errors = upload.Errors });
     var manifest = upload.Manifest!;
+
+    var profile = await db.CreatorProfiles.SingleOrDefaultAsync(x => x.UserId == userId, context.RequestAborted);
+    if (profile is null)
+    {
+        var creatorSlug = Slugify(user.UserName ?? user.Email ?? userId);
+        profile = new CreatorProfile
+        {
+            UserId = userId,
+            Slug = creatorSlug,
+            DisplayName = user.DisplayName ?? user.UserName ?? user.Email ?? "Anvil creator",
+            Bio = "An open-source Anvil creator."
+        };
+        db.CreatorProfiles.Add(profile);
+    }
+    if (!user.IsCreator)
+    {
+        user.IsCreator = true;
+        await users.UpdateAsync(user);
+    }
+    if (!await users.IsInRoleAsync(user, "Creator"))
+        await users.AddToRoleAsync(user, "Creator");
 
     var listing = await db.Listings.SingleOrDefaultAsync(x => x.Identifier == manifest.Id, context.RequestAborted);
     if (listing is null)
@@ -128,7 +148,7 @@ app.MapPost("/api/creator/upload", async (RequestContext context, StoreDbContext
     db.ListingVersions.Add(version);
     await db.SaveChangesAsync(context.RequestAborted);
     return Results.Redirect("/creator/submissions");
-}).RequireAuthorization(policy => policy.RequireRole("Creator", "Administrator"));
+}).RequireAuthorization();
 
 app.MapPost("/api/admin/releases/{id:int}/approve", async (int id, RequestContext context, StoreDbContext db, IPackageStorage storage) =>
 {
