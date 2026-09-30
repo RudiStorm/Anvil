@@ -704,37 +704,3 @@ The generated application must provide authenticated Razor pages, policy-based
 authorization, durable audit records, tenant-safe CRUD, server-side validation,
 partial HTML updates, OpenAPI metadata, and production diagnostics without a
 Vue frontend or a separate API project.
-## P6: Anvil Store Sample
-
-The Anvil Store is the first production-shaped marketplace sample. It distributes
-free and open-source editable source archives for Anvil templates and providers.
-
-- Store implementation plan and package contract documented in `agent-store-plan.md`. [x]
-- Single-tenant `samples/Anvil.Store` application foundation with SQLite persistence and Identity. [x]
-- Creator, moderator, administrator, and public storefront route boundaries. [x]
-- Constrained ZIP package manifest and archive validation boundary. [x]
-- Local quarantine, accepted, and published artifact storage boundary. [x]
-- ClamAV malware scanning adapter with explicit development-only scanner. [x]
-- Railway Dockerfile, non-root runtime entrypoint, persistent `/app/data` volume
-  layout, and health-check deployment configuration. [x]
-- Manual release review, approval, immutable artifact publication, and checksums. [x]
-- Public template/provider catalog, listing details, search, creator profiles, and sitemap. [x]
-- Authenticated download history, favorites, and eligible reviews. [ ]
-- Complete administration, moderation reports, notifications, and operations UI. [ ]
-- Full browser, accessibility, upload-security, authorization, and production verification suite. [ ]
-- Public package API and CLI template consumption. [ ]
-
-- Store sign-in, registration, logout, browser redirects, and authenticated account navigation. [x]
-- Protected Store dashboard route with catalog summary and authenticated workspace links. [x]
-- Public creator landing page with protected creator submission actions. [x]
-- Copyable future CLI installation commands displayed on template and provider listings; CLI implementation remains deferred. [x]
-- Any authenticated user can begin creator onboarding; first upload creates the creator profile and role. [x]
-- First non-seeded registered account bootstrap and administrator dashboard navigation. [x]
-- Administrator catalog and user management workflows. [x]
-- Replace SQLite with a production relational provider before public launch. [ ]
-- Mailcatcher SMTP provider, Docker setup, admin test page, and deployment documentation. [x]
-- Anvil typed cache facade and file-backed cache registered by default. [x]
-- Store public catalog data reader uses Anvil cache-aside caching. [x]
-- Redis cache backend distributed as editable Anvil Store provider source. [x]
-- Full-page output caching remains intentionally out of scope for the Store. [x]
-- Explicit malware scanner enable switch and Railway bypass documentation. [x]
