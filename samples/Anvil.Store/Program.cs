@@ -236,6 +236,13 @@ public static class StoreSeed
             if (!await roleManager.RoleExistsAsync(role))
                 await roleManager.CreateAsync(new IdentityRole(role));
 
+        var seededListing = await db.Listings.SingleOrDefaultAsync(x => x.Identifier == "anvil.forge-dashboard");
+        if (seededListing is not null)
+        {
+            seededListing.Identifier = "anvil-team.forge-dashboard";
+            await db.SaveChangesAsync();
+        }
+
         if (await db.Listings.AnyAsync())
             return;
 
@@ -258,7 +265,7 @@ public static class StoreSeed
         {
             Creator = creator,
             Slug = "forge-dashboard",
-            Identifier = "anvil.forge-dashboard",
+            Identifier = "anvil-team.forge-dashboard",
             Name = "Forge Dashboard",
             PackageType = PackageType.Template,
             Summary = "A polished Identity dashboard starter for Anvil applications.",

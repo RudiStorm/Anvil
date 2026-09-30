@@ -13,4 +13,16 @@
         window.localStorage.setItem('anvil-store-theme', root.dataset.theme);
         update();
     });
+    document.addEventListener('click', function (event) {
+        const copyButton = event.target.closest('[data-copy-command]');
+        if (!copyButton) return;
+        const command = copyButton.dataset.copyCommand;
+        if (!command) return;
+        const status = copyButton.parentElement.nextElementSibling;
+        navigator.clipboard.writeText(command).then(function () {
+            copyButton.textContent = 'Copied';
+            if (status) status.textContent = 'Command copied to clipboard.';
+            window.setTimeout(function () { copyButton.textContent = 'Copy'; }, 1800);
+        });
+    });
 }());

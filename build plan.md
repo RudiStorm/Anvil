@@ -726,3 +726,5 @@ free and open-source editable source archives for Anvil templates and providers.
 
 - Store sign-in, registration, logout, browser redirects, and authenticated account navigation. [x]
 - Protected Store dashboard route with catalog summary and authenticated workspace links. [x]
+- Public creator landing page with protected creator submission actions. [x]
+- Copyable future CLI installation commands displayed on template and provider listings; CLI implementation remains deferred. [x]
